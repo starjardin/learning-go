@@ -9,9 +9,18 @@ import (
 )
 
 type Querier interface {
+	CreateCompany(ctx context.Context, name string) (Company, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
+	DeleteCompany(ctx context.Context, id int32) error
+	GetCompanies(ctx context.Context) ([]Company, error)
+	GetCompaniesByNameOrId(ctx context.Context, name string) ([]Company, error)
+	GetCompany(ctx context.Context, id int32) (Company, error)
+	GetCompanyById(ctx context.Context, id int32) (Company, error)
+	GetCompanyByName(ctx context.Context, name string) (Company, error)
+	GetCompanyByNameOrId(ctx context.Context, name string) (Company, error)
 	GetUser(ctx context.Context, id int32) (User, error)
 	GetUsers(ctx context.Context) ([]User, error)
+	UpdateCompany(ctx context.Context, arg UpdateCompanyParams) (Company, error)
 }
 
 var _ Querier = (*Queries)(nil)

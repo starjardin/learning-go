@@ -1,8 +1,6 @@
 package api
 
 import (
-	"net/http"
-
 	"github.com/gin-gonic/gin"
 	db "github.com/starjardin/onja-products/db/sqlc"
 	"github.com/starjardin/onja-products/utils"
@@ -22,9 +20,10 @@ func NewServer(config utils.Config, store db.Store) (*Server, error) {
 		config: config,
 	}
 
-	server.router.GET("/", func(ctx *gin.Context) {
-		ctx.JSON(http.StatusOK, gin.H{"message": "Hello, World! Welcome to Onja Products API!"})
-	})
+	server.router.GET("/users", server.getUsers)
+	server.router.POST("/users/create", server.createUser)
+	server.router.GET("/companies", server.getCompanies)
+	server.router.POST("/companies/create", server.createCompany)
 
 	return server, nil
 }
