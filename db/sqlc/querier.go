@@ -12,6 +12,7 @@ type Querier interface {
 	CreateCompany(ctx context.Context, name string) (Company, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	DeleteCompany(ctx context.Context, id int32) error
+	DeleteUser(ctx context.Context, id int32) error
 	GetCompanies(ctx context.Context) ([]Company, error)
 	GetCompaniesByNameOrId(ctx context.Context, name string) ([]Company, error)
 	GetCompany(ctx context.Context, id int32) (Company, error)
@@ -19,8 +20,10 @@ type Querier interface {
 	GetCompanyByName(ctx context.Context, name string) (Company, error)
 	GetCompanyByNameOrId(ctx context.Context, name string) (Company, error)
 	GetUser(ctx context.Context, id int32) (User, error)
+	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUsers(ctx context.Context) ([]User, error)
 	UpdateCompany(ctx context.Context, arg UpdateCompanyParams) (Company, error)
+	UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error)
 }
 
 var _ Querier = (*Queries)(nil)

@@ -7,8 +7,8 @@ package db
 
 import (
 	"context"
-	"database/sql"
-	"time"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const createUser = `-- name: CreateUser :one
@@ -18,19 +18,19 @@ RETURNING id, username, hashed_password, email, full_name, address, phone_number
 `
 
 type CreateUserParams struct {
-	Username         string        `json:"username"`
-	HashedPassword   string        `json:"hashed_password"`
-	Email            string        `json:"email"`
-	FullName         string        `json:"full_name"`
-	Address          string        `json:"address"`
-	PhoneNumber      string        `json:"phone_number"`
-	PaymentMethod    string        `json:"payment_method"`
-	PasswordChangeAt time.Time     `json:"password_change_at"`
-	CompanyID        sql.NullInt32 `json:"company_id"`
+	Username         string             `db:"username" json:"username"`
+	HashedPassword   string             `db:"hashed_password" json:"hashed_password"`
+	Email            string             `db:"email" json:"email"`
+	FullName         string             `db:"full_name" json:"full_name"`
+	Address          string             `db:"address" json:"address"`
+	PhoneNumber      string             `db:"phone_number" json:"phone_number"`
+	PaymentMethod    string             `db:"payment_method" json:"payment_method"`
+	PasswordChangeAt pgtype.Timestamptz `db:"password_change_at" json:"password_change_at"`
+	CompanyID        pgtype.Int4        `db:"company_id" json:"company_id"`
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
-	row := q.db.QueryRowContext(ctx, createUser,
+	row := q.db.QueryRow(ctx, createUser,
 		arg.Username,
 		arg.HashedPassword,
 		arg.Email,
@@ -57,13 +57,46 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 	return i, err
 }
 
+const deleteUser = `-- name: DeleteUser :exec
+DELETE FROM users
+WHERE id = $1
+`
+
+func (q *Queries) DeleteUser(ctx context.Context, id int32) error {
+	_, err := q.db.Exec(ctx, deleteUser, id)
+	return err
+}
+
 const getUser = `-- name: GetUser :one
 SELECT id, username, hashed_password, email, full_name, address, phone_number, payment_method, password_change_at, company_id FROM users
 WHERE id = $1 LIMIT 1
 `
 
 func (q *Queries) GetUser(ctx context.Context, id int32) (User, error) {
-	row := q.db.QueryRowContext(ctx, getUser, id)
+	row := q.db.QueryRow(ctx, getUser, id)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.HashedPassword,
+		&i.Email,
+		&i.FullName,
+		&i.Address,
+		&i.PhoneNumber,
+		&i.PaymentMethod,
+		&i.PasswordChangeAt,
+		&i.CompanyID,
+	)
+	return i, err
+}
+
+const getUserByEmail = `-- name: GetUserByEmail :one
+SELECT id, username, hashed_password, email, full_name, address, phone_number, payment_method, password_change_at, company_id FROM users
+WHERE email = $1 LIMIT 1
+`
+
+func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
+	row := q.db.QueryRow(ctx, getUserByEmail, email)
 	var i User
 	err := row.Scan(
 		&i.ID,
@@ -86,12 +119,12 @@ ORDER BY id
 `
 
 func (q *Queries) GetUsers(ctx context.Context) ([]User, error) {
-	rows, err := q.db.QueryContext(ctx, getUsers)
+	rows, err := q.db.Query(ctx, getUsers)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []User{}
+	var items []User
 	for rows.Next() {
 		var i User
 		if err := rows.Scan(
@@ -110,11 +143,66 @@ func (q *Queries) GetUsers(ctx context.Context) ([]User, error) {
 		}
 		items = append(items, i)
 	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
 	return items, nil
+}
+
+const updateUser = `-- name: UpdateUser :one
+UPDATE users
+SET 
+    username = coalesce($1, username),
+    hashed_password = coalesce($2, hashed_password),
+    email = coalesce($3, email),
+    full_name = coalesce($4, full_name),
+    address = coalesce($5, address),
+    phone_number = coalesce($6, phone_number),
+    payment_method = coalesce($7, payment_method),
+    password_change_at = coalesce($8, password_change_at),
+    company_id = coalesce($9, company_id)
+WHERE id = $10
+RETURNING id, username, hashed_password, email, full_name, address, phone_number, payment_method, password_change_at, company_id
+`
+
+type UpdateUserParams struct {
+	Username         pgtype.Text        `db:"username" json:"username"`
+	HashedPassword   pgtype.Text        `db:"hashed_password" json:"hashed_password"`
+	Email            pgtype.Text        `db:"email" json:"email"`
+	FullName         pgtype.Text        `db:"full_name" json:"full_name"`
+	Address          pgtype.Text        `db:"address" json:"address"`
+	PhoneNumber      pgtype.Text        `db:"phone_number" json:"phone_number"`
+	PaymentMethod    pgtype.Text        `db:"payment_method" json:"payment_method"`
+	PasswordChangeAt pgtype.Timestamptz `db:"password_change_at" json:"password_change_at"`
+	CompanyID        pgtype.Int4        `db:"company_id" json:"company_id"`
+	ID               int32              `db:"id" json:"id"`
+}
+
+func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error) {
+	row := q.db.QueryRow(ctx, updateUser,
+		arg.Username,
+		arg.HashedPassword,
+		arg.Email,
+		arg.FullName,
+		arg.Address,
+		arg.PhoneNumber,
+		arg.PaymentMethod,
+		arg.PasswordChangeAt,
+		arg.CompanyID,
+		arg.ID,
+	)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.HashedPassword,
+		&i.Email,
+		&i.FullName,
+		&i.Address,
+		&i.PhoneNumber,
+		&i.PaymentMethod,
+		&i.PasswordChangeAt,
+		&i.CompanyID,
+	)
+	return i, err
 }

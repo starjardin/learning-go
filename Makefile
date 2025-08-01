@@ -25,6 +25,15 @@ test:
 sqlc:
 	sqlc generate
 
+gqlgen:
+	go mod tidy
+	GOPROXY=direct go get -u github.com/99designs/gqlgen
+	GOPROXY=direct go get -u github.com/99designs/gqlgen/codegen/config
+	GOPROXY=direct go get -u github.com/99designs/gqlgen/internal/imports
+	GOPROXY=direct go get -u github.com/99designs/gqlgen/api
+	GOPROXY=direct go get -u github.com/urfave/cli/v2
+	go run github.com/99designs/gqlgen generate
+
 server:
 	go run main.go
 
@@ -32,4 +41,4 @@ mock:
 	mockgen -package mockdb --destination db/mock/store.go github.com/starjardin/onja-products/db/sqlc Store
 
 
-.PHONY: postgres createdb dropdb migrateup migratedown migrateup1 migratedown1 sqlc test server mock
+.PHONY: postgres createdb dropdb migrateup migratedown migrateup1 migratedown1 sqlc test server mock gqlgen

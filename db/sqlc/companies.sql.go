@@ -16,7 +16,7 @@ RETURNING id, name
 `
 
 func (q *Queries) CreateCompany(ctx context.Context, name string) (Company, error) {
-	row := q.db.QueryRowContext(ctx, createCompany, name)
+	row := q.db.QueryRow(ctx, createCompany, name)
 	var i Company
 	err := row.Scan(&i.ID, &i.Name)
 	return i, err
@@ -28,7 +28,7 @@ WHERE id = $1
 `
 
 func (q *Queries) DeleteCompany(ctx context.Context, id int32) error {
-	_, err := q.db.ExecContext(ctx, deleteCompany, id)
+	_, err := q.db.Exec(ctx, deleteCompany, id)
 	return err
 }
 
@@ -38,21 +38,18 @@ ORDER BY id
 `
 
 func (q *Queries) GetCompanies(ctx context.Context) ([]Company, error) {
-	rows, err := q.db.QueryContext(ctx, getCompanies)
+	rows, err := q.db.Query(ctx, getCompanies)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []Company{}
+	var items []Company
 	for rows.Next() {
 		var i Company
 		if err := rows.Scan(&i.ID, &i.Name); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -67,21 +64,18 @@ ORDER BY id
 `
 
 func (q *Queries) GetCompaniesByNameOrId(ctx context.Context, name string) ([]Company, error) {
-	rows, err := q.db.QueryContext(ctx, getCompaniesByNameOrId, name)
+	rows, err := q.db.Query(ctx, getCompaniesByNameOrId, name)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []Company{}
+	var items []Company
 	for rows.Next() {
 		var i Company
 		if err := rows.Scan(&i.ID, &i.Name); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -95,7 +89,7 @@ WHERE id = $1 LIMIT 1
 `
 
 func (q *Queries) GetCompany(ctx context.Context, id int32) (Company, error) {
-	row := q.db.QueryRowContext(ctx, getCompany, id)
+	row := q.db.QueryRow(ctx, getCompany, id)
 	var i Company
 	err := row.Scan(&i.ID, &i.Name)
 	return i, err
@@ -107,7 +101,7 @@ WHERE id = $1 LIMIT 1
 `
 
 func (q *Queries) GetCompanyById(ctx context.Context, id int32) (Company, error) {
-	row := q.db.QueryRowContext(ctx, getCompanyById, id)
+	row := q.db.QueryRow(ctx, getCompanyById, id)
 	var i Company
 	err := row.Scan(&i.ID, &i.Name)
 	return i, err
@@ -119,7 +113,7 @@ WHERE name = $1 LIMIT 1
 `
 
 func (q *Queries) GetCompanyByName(ctx context.Context, name string) (Company, error) {
-	row := q.db.QueryRowContext(ctx, getCompanyByName, name)
+	row := q.db.QueryRow(ctx, getCompanyByName, name)
 	var i Company
 	err := row.Scan(&i.ID, &i.Name)
 	return i, err
@@ -131,7 +125,7 @@ WHERE name = $1 OR id = $1 LIMIT 1
 `
 
 func (q *Queries) GetCompanyByNameOrId(ctx context.Context, name string) (Company, error) {
-	row := q.db.QueryRowContext(ctx, getCompanyByNameOrId, name)
+	row := q.db.QueryRow(ctx, getCompanyByNameOrId, name)
 	var i Company
 	err := row.Scan(&i.ID, &i.Name)
 	return i, err
@@ -145,12 +139,12 @@ RETURNING id, name
 `
 
 type UpdateCompanyParams struct {
-	ID   int32  `json:"id"`
-	Name string `json:"name"`
+	ID   int32  `db:"id" json:"id"`
+	Name string `db:"name" json:"name"`
 }
 
 func (q *Queries) UpdateCompany(ctx context.Context, arg UpdateCompanyParams) (Company, error) {
-	row := q.db.QueryRowContext(ctx, updateCompany, arg.ID, arg.Name)
+	row := q.db.QueryRow(ctx, updateCompany, arg.ID, arg.Name)
 	var i Company
 	err := row.Scan(&i.ID, &i.Name)
 	return i, err

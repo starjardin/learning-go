@@ -5,44 +5,43 @@
 package db
 
 import (
-	"database/sql"
-	"time"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type Company struct {
-	ID   int32  `json:"id"`
-	Name string `json:"name"`
+	ID   int32  `db:"id" json:"id"`
+	Name string `db:"name" json:"name"`
 }
 
 type Product struct {
-	ID              int32         `json:"id"`
-	Name            string        `json:"name"`
-	ImageLink       string        `json:"image_link"`
-	Description     string        `json:"description"`
-	AvailableStocks int32         `json:"available_stocks"`
-	Price           int32         `json:"price"`
-	IsNegotiable    bool          `json:"is_negotiable"`
-	OwnerID         int32         `json:"owner_id"`
-	CompanyID       sql.NullInt32 `json:"company_id"`
-	Likes           int32         `json:"likes"`
-	Sold            bool          `json:"sold"`
+	ID              int32       `db:"id" json:"id"`
+	Name            string      `db:"name" json:"name"`
+	ImageLink       string      `db:"image_link" json:"image_link"`
+	Description     string      `db:"description" json:"description"`
+	AvailableStocks int32       `db:"available_stocks" json:"available_stocks"`
+	Price           int32       `db:"price" json:"price"`
+	IsNegotiable    bool        `db:"is_negotiable" json:"is_negotiable"`
+	OwnerID         int32       `db:"owner_id" json:"owner_id"`
+	CompanyID       pgtype.Int4 `db:"company_id" json:"company_id"`
+	Likes           int32       `db:"likes" json:"likes"`
+	Sold            bool        `db:"sold" json:"sold"`
 }
 
 type ProductLike struct {
-	ProductID int32     `json:"product_id"`
-	UserID    int32     `json:"user_id"`
-	CreatedAt time.Time `json:"created_at"`
+	ProductID int32              `db:"product_id" json:"product_id"`
+	UserID    int32              `db:"user_id" json:"user_id"`
+	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
 }
 
 type User struct {
-	ID               int32         `json:"id"`
-	Username         string        `json:"username"`
-	HashedPassword   string        `json:"hashed_password"`
-	Email            string        `json:"email"`
-	FullName         string        `json:"full_name"`
-	Address          string        `json:"address"`
-	PhoneNumber      string        `json:"phone_number"`
-	PaymentMethod    string        `json:"payment_method"`
-	PasswordChangeAt time.Time     `json:"password_change_at"`
-	CompanyID        sql.NullInt32 `json:"company_id"`
+	ID               int32              `db:"id" json:"id"`
+	Username         string             `db:"username" json:"username"`
+	HashedPassword   string             `db:"hashed_password" json:"hashed_password"`
+	Email            string             `db:"email" json:"email"`
+	FullName         string             `db:"full_name" json:"full_name"`
+	Address          string             `db:"address" json:"address"`
+	PhoneNumber      string             `db:"phone_number" json:"phone_number"`
+	PaymentMethod    string             `db:"payment_method" json:"payment_method"`
+	PasswordChangeAt pgtype.Timestamptz `db:"password_change_at" json:"password_change_at"`
+	CompanyID        pgtype.Int4        `db:"company_id" json:"company_id"`
 }

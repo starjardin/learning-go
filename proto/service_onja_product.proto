@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package pb;
+
+import "rpc_user.proto";
+import "google/protobuf/empty.proto";
+
+service UserService {
+  rpc GetUser(GetUserRequest) returns (UserResponse);
+
+  rpc CreateUser(CreateUserRequest) returns (UserResponse);
+  
+  rpc GetAllUsers(google.protobuf.Empty) returns (stream User);
+}
