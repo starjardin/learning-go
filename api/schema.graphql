@@ -22,13 +22,11 @@ type Company {
 type User {
   id: ID!
   username: String!
-  hashed_password: String!
   email: String!
   full_name: String!
   address: String!
   phone_number: String!
   payment_method: String!
-  password_change_at: Date!
   company_id: Int
 }
 type Query {
@@ -36,6 +34,8 @@ type Query {
   listUsers: [User!]!
   getCompanies: [Company!]!
   getCompany(id: ID!): Company
+  getProducts: [Product!]!
+  getProduct(id: ID!): Product
 }
 type Mutation {
   createUser(
@@ -50,6 +50,8 @@ type Mutation {
   deleteUser(id: ID!): Boolean!
   createCompany(name: String!): Company!
   updateCompany(id: ID!, name: String!): Company!
+  createProduct(input: CreateProductInput!): Product!
+  updateProduct(id: ID!, input: UpdateProductInput!): Product!
   deleteCompany(id: ID!): Boolean!
 }
 
@@ -73,4 +75,25 @@ input UpdateUserInput {
   phone_number: String
   payment_method: String
   company_id: Int
+}
+
+input UpdateProductInput {
+	name: String
+	image_link: String
+	description: String
+	available_stocks: Int
+	price: Int
+	is_negotiable: Boolean
+	sold: Boolean
+}
+
+input CreateProductInput {
+	name: String!
+	image_link: String!
+	description: String!
+	available_stocks: Int!
+	price: Int!
+	is_negotiable: Boolean!
+	owner_id: Int!
+	company_id: Int
 }

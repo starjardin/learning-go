@@ -7,6 +7,17 @@ type Company struct {
 	Name string `json:"name"`
 }
 
+type CreateProductInput struct {
+	Name            string `json:"name"`
+	ImageLink       string `json:"image_link"`
+	Description     string `json:"description"`
+	AvailableStocks int    `json:"available_stocks"`
+	Price           int    `json:"price"`
+	IsNegotiable    bool   `json:"is_negotiable"`
+	OwnerID         int    `json:"owner_id"`
+	CompanyID       *int   `json:"company_id,omitempty"`
+}
+
 type Mutation struct {
 }
 
@@ -27,6 +38,16 @@ type Product struct {
 type Query struct {
 }
 
+type UpdateProductInput struct {
+	Name            *string `json:"name,omitempty"`
+	ImageLink       *string `json:"image_link,omitempty"`
+	Description     *string `json:"description,omitempty"`
+	AvailableStocks *int    `json:"available_stocks,omitempty"`
+	Price           *int    `json:"price,omitempty"`
+	IsNegotiable    *bool   `json:"is_negotiable,omitempty"`
+	Sold            *bool   `json:"sold,omitempty"`
+}
+
 type UpdateUserInput struct {
 	Username      *string `json:"username,omitempty"`
 	Password      *string `json:"password,omitempty"`
@@ -39,16 +60,14 @@ type UpdateUserInput struct {
 }
 
 type User struct {
-	ID               string `json:"id"`
-	Username         string `json:"username"`
-	HashedPassword   string `json:"hashed_password"`
-	Email            string `json:"email"`
-	FullName         string `json:"full_name"`
-	Address          string `json:"address"`
-	PhoneNumber      string `json:"phone_number"`
-	PaymentMethod    string `json:"payment_method"`
-	PasswordChangeAt string `json:"password_change_at"`
-	CompanyID        *int   `json:"company_id,omitempty"`
+	ID            string `json:"id"`
+	Username      string `json:"username"`
+	Email         string `json:"email"`
+	FullName      string `json:"full_name"`
+	Address       string `json:"address"`
+	PhoneNumber   string `json:"phone_number"`
+	PaymentMethod string `json:"payment_method"`
+	CompanyID     *int   `json:"company_id,omitempty"`
 }
 
 type UserInput struct {

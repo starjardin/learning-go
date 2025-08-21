@@ -6,12 +6,16 @@ package db
 
 import (
 	"context"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type Querier interface {
 	CreateCompany(ctx context.Context, name string) (Company, error)
+	CreateProduct(ctx context.Context, arg CreateProductParams) (Product, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	DeleteCompany(ctx context.Context, id int32) error
+	DeleteProduct(ctx context.Context, id int32) (Product, error)
 	DeleteUser(ctx context.Context, id int32) error
 	GetCompanies(ctx context.Context) ([]Company, error)
 	GetCompaniesByNameOrId(ctx context.Context, name string) ([]Company, error)
@@ -19,10 +23,14 @@ type Querier interface {
 	GetCompanyById(ctx context.Context, id int32) (Company, error)
 	GetCompanyByName(ctx context.Context, name string) (Company, error)
 	GetCompanyByNameOrId(ctx context.Context, name string) (Company, error)
+	GetProduct(ctx context.Context, id int32) (Product, error)
+	GetProducts(ctx context.Context) ([]Product, error)
 	GetUser(ctx context.Context, id int32) (User, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUsers(ctx context.Context) ([]User, error)
+	SearchProducts(ctx context.Context, dollar_1 pgtype.Text) ([]Product, error)
 	UpdateCompany(ctx context.Context, arg UpdateCompanyParams) (Company, error)
+	UpdateProduct(ctx context.Context, arg UpdateProductParams) (Product, error)
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error)
 }
 

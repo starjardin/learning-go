@@ -14,17 +14,19 @@ type Company struct {
 }
 
 type Product struct {
-	ID              int32       `db:"id" json:"id"`
-	Name            string      `db:"name" json:"name"`
-	ImageLink       string      `db:"image_link" json:"image_link"`
-	Description     string      `db:"description" json:"description"`
-	AvailableStocks int32       `db:"available_stocks" json:"available_stocks"`
-	Price           int32       `db:"price" json:"price"`
-	IsNegotiable    bool        `db:"is_negotiable" json:"is_negotiable"`
-	OwnerID         int32       `db:"owner_id" json:"owner_id"`
-	CompanyID       pgtype.Int4 `db:"company_id" json:"company_id"`
-	Likes           int32       `db:"likes" json:"likes"`
-	Sold            bool        `db:"sold" json:"sold"`
+	ID              int32              `db:"id" json:"id"`
+	Name            string             `db:"name" json:"name"`
+	ImageLink       string             `db:"image_link" json:"image_link"`
+	Description     string             `db:"description" json:"description"`
+	AvailableStocks int32              `db:"available_stocks" json:"available_stocks"`
+	Price           int32              `db:"price" json:"price"`
+	IsNegotiable    bool               `db:"is_negotiable" json:"is_negotiable"`
+	OwnerID         int32              `db:"owner_id" json:"owner_id"`
+	CompanyID       pgtype.Int4        `db:"company_id" json:"company_id"`
+	Likes           int32              `db:"likes" json:"likes"`
+	Sold            bool               `db:"sold" json:"sold"`
+	CreatedAt       pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt       pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
 }
 
 type ProductLike struct {
