@@ -159,7 +159,23 @@ func (r *mutationResolver) CreateCompany(ctx context.Context, name string) (*mod
 
 // UpdateCompany is the resolver for the updateCompany field.
 func (r *mutationResolver) UpdateCompany(ctx context.Context, id string, name string) (*model.Company, error) {
-	panic(fmt.Errorf("not implemented: UpdateCompany - updateCompany"))
+	companyID, err := strconv.ParseInt(id, 10, 64)
+	if err != nil {
+		return nil, fmt.Errorf("invalid company ID: %w", err)
+	}
+
+	company, err := r.Resolver.Queries.UpdateCompany(ctx, db.UpdateCompanyParams{
+		ID:   int32(companyID),
+		Name: name,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to update company: %w", err)
+	}
+
+	return &model.Company{
+		ID:   fmt.Sprintf("%d", company.ID),
+		Name: company.Name,
+	}, nil
 }
 
 // CreateProduct is the resolver for the createProduct field.
@@ -215,7 +231,17 @@ func (r *mutationResolver) UpdateProduct(ctx context.Context, id string, input m
 
 // DeleteCompany is the resolver for the deleteCompany field.
 func (r *mutationResolver) DeleteCompany(ctx context.Context, id string) (bool, error) {
-	panic(fmt.Errorf("not implemented: DeleteCompany - deleteCompany"))
+	companyID, err := strconv.ParseInt(id, 10, 64)
+	if err != nil {
+		return false, fmt.Errorf("invalid company ID: %w", err)
+	}
+
+	err = r.Resolver.Queries.DeleteCompany(ctx, int32(companyID))
+	if err != nil {
+		return false, fmt.Errorf("failed to delete company: %w", err)
+	}
+
+	return true, nil
 }
 
 // GetUser is the resolver for the getUser field.
@@ -327,7 +353,34 @@ func (r *queryResolver) GetProducts(ctx context.Context) ([]*model.Product, erro
 
 // GetProduct is the resolver for the getProduct field.
 func (r *queryResolver) GetProduct(ctx context.Context, id string) (*model.Product, error) {
-	panic(fmt.Errorf("not implemented: GetProduct - getProduct"))
+	productID, err := strconv.ParseInt(id, 10, 64)
+	if err != nil {
+		return nil, fmt.Errorf("invalid product ID: %w", err)
+	}
+
+	product, err := r.Resolver.Queries.GetProduct(ctx, int32(productID))
+	if err != nil {
+		return nil, fmt.Errorf("failed to get product: %w", err)
+	}
+
+	var responseCompanyID int
+	if product.CompanyID.Valid {
+		responseCompanyID = int(product.CompanyID.Int32)
+	} else {
+		responseCompanyID = 0
+	}
+
+	return &model.Product{
+		ID:              fmt.Sprintf("%d", product.ID),
+		Name:            product.Name,
+		Description:     product.Description,
+		Price:           int(product.Price),
+		OwnerID:         int(product.OwnerID),
+		CompanyID:       &responseCompanyID,
+		ImageLink:       product.ImageLink,
+		AvailableStocks: int(product.AvailableStocks),
+		IsNegotiable:    product.IsNegotiable,
+	}, nil
 }
 
 // Mutation returns MutationResolver implementation.
