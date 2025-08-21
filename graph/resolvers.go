@@ -226,7 +226,60 @@ func (r *mutationResolver) CreateProduct(ctx context.Context, input model.Create
 
 // UpdateProduct is the resolver for the updateProduct field.
 func (r *mutationResolver) UpdateProduct(ctx context.Context, id string, input model.UpdateProductInput) (*model.Product, error) {
-	panic(fmt.Errorf("not implemented: UpdateProduct - updateProduct"))
+	productID, err := strconv.ParseInt(id, 10, 64)
+	if err != nil {
+		return nil, fmt.Errorf("invalid product ID: %w", err)
+	}
+
+	params := db.UpdateProductParams{
+		ID: int32(productID),
+	}
+
+	if input.ImageLink != nil {
+		params.ImageLink = pgtype.Text{Valid: true, String: *input.ImageLink}
+	}
+
+	if input.Description != nil {
+		params.Description = pgtype.Text{Valid: true, String: *input.Description}
+	}
+
+	if input.AvailableStocks != nil {
+		params.AvailableStocks = pgtype.Int4{Valid: true, Int32: int32(*input.AvailableStocks)}
+	}
+
+	if input.IsNegotiable != nil {
+		params.IsNegotiable = pgtype.Bool{Valid: true, Bool: *input.IsNegotiable}
+	}
+
+	if input.Sold != nil {
+		params.Sold = pgtype.Bool{Valid: true, Bool: *input.Sold}
+	}
+
+	if input.Price != nil {
+		params.Price = pgtype.Int4{Valid: true, Int32: int32(*input.Price)}
+	}
+
+	product, err := r.Resolver.Queries.UpdateProduct(ctx, params)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update product: %w", err)
+	}
+
+	var responseCompanyID int
+	if product.CompanyID.Valid {
+		responseCompanyID = int(product.CompanyID.Int32)
+	}
+
+	return &model.Product{
+		ID:              fmt.Sprintf("%d", product.ID),
+		Name:            product.Name,
+		Description:     product.Description,
+		Price:           int(product.Price),
+		OwnerID:         int(product.OwnerID),
+		CompanyID:       &responseCompanyID,
+		ImageLink:       product.ImageLink,
+		AvailableStocks: int(product.AvailableStocks),
+		IsNegotiable:    product.IsNegotiable,
+	}, nil
 }
 
 // DeleteCompany is the resolver for the deleteCompany field.
