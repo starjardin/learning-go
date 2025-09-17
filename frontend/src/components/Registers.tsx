@@ -1,9 +1,8 @@
-import { ArrowLeft, Eye, EyeOff, Link, User } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, User } from "lucide-react";
 import { useState } from "react";
+import { Link } from "react-router-dom";
 
  export const RegisterScreen = () => {
-
-
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [loginForm, setLoginForm] = useState({
@@ -53,7 +52,7 @@ import { useState } from "react";
   };
 
 
-    return <div className="flex flex-col h-screen bg-white">
+    return <div className="flex flex-col w-lg m-auto h-screen bg-white">
       {/* Header */}
       <div className="bg-white pt-8 pb-4 px-6">
         <div className="flex items-center mb-6">
@@ -229,11 +228,11 @@ import { useState } from "react";
             />
             <label htmlFor="terms" className="text-sm text-gray-600 leading-relaxed">
               I agree to the{' '}
-              <button type="button" className="text-black font-medium hover:underline">
+              <button type="button" className="text-black cursor-pointer font-medium hover:underline">
                 Terms of Service
               </button>{' '}
               and{' '}
-              <button type="button" className="text-black font-medium hover:underline">
+              <button type="button" className="text-black cursor-pointer font-medium hover:underline">
                 Privacy Policy
               </button>
             </label>
@@ -242,7 +241,7 @@ import { useState } from "react";
           {/* Register Button */}
           <button
             type="submit"
-            className="w-full bg-black text-white py-4 rounded-lg font-medium text-lg hover:bg-gray-800 transition-colors mt-6"
+            className="w-full bg-black cursor-pointer text-white py-4 rounded-lg font-medium text-lg hover:bg-gray-800 transition-colors mt-6"
           >
             Create Account
           </button>

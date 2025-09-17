@@ -1,8 +1,9 @@
-import { Eye, EyeOff, Link } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, User } from "lucide-react";
 import { useState } from "react";
+import { Link } from "react-router-dom";
+import Button from "./Button";
 
  export const LoginScreen = () => {
-
     const [loginForm, setLoginForm] = useState({
         email: '',
         password: ''
@@ -20,7 +21,21 @@ import { useState } from "react";
       console.log("Logging in with:", loginForm);
     }
 
-    return <div className="flex flex-col h-screen bg-white">
+    return <div className="flex flex-col w-lg m-auto h-screen bg-white">
+      <div className="bg-white pt-8 pb-4 px-6">
+        <div className="flex items-center mb-6">
+          <Link to="/login" className="mr-4">
+            <ArrowLeft className="w-6 h-6" />
+          </Link>
+          <div className="text-center flex-1">
+            <div className="w-12 h-12 bg-black rounded-full mx-auto mb-3 flex items-center justify-center">
+              <User className="w-6 h-6 text-white" />
+            </div>
+            <h1 className="text-2xl font-bold text-black mb-1">Create Account</h1>
+            <p className="text-gray-500 text-sm">Join ShopEasy today</p>
+          </div>
+        </div>
+      </div>
       <div className="flex-1 px-6">
         <form onSubmit={handleLogin} className="space-y-6">
           <div>
@@ -67,14 +82,14 @@ import { useState } from "react";
               />
               <span className="ml-2 text-sm text-gray-600">Remember me</span>
             </label>
-            <button type="button" className="text-sm text-black font-medium hover:underline">
+            <Button type="button" className="text-sm text-black font-medium hover:underline">
               Forgot Password?
-            </button>
+            </Button>
           </div>
 
           <button
             type="submit"
-            className="w-full bg-black text-white py-4 rounded-lg font-medium text-lg hover:bg-gray-800 transition-colors"
+            className="w-full bg-black cursor-pointer text-white py-4 rounded-lg font-medium text-lg hover:bg-gray-800 transition-colors"
           >
             Sign In
           </button>
@@ -91,7 +106,7 @@ import { useState } from "react";
           <div className="space-y-3">
             <button
               type="button"
-              className="w-full flex items-center justify-center px-4 py-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              className="w-full cursor-pointer flex items-center justify-center px-4 py-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
             >
               <div className="w-5 h-5 bg-blue-500 rounded mr-3"></div>
               <span className="text-gray-700 font-medium">Continue with Google</span>
@@ -99,7 +114,7 @@ import { useState } from "react";
             
             <button
               type="button"
-              className="w-full flex items-center justify-center px-4 py-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              className="w-full cursor-pointer flex items-center justify-center px-4 py-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
             >
               <div className="w-5 h-5 bg-blue-600 rounded mr-3"></div>
               <span className="text-gray-700 font-medium">Continue with Facebook</span>

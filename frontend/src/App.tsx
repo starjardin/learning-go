@@ -1,13 +1,8 @@
-import Header from "./components/Header"
-import ShoppingApp from "./components/Register"
+import { CategoriesScreen } from "./components/CategoriesScreen"
 
 function App() {
   return (
-    <>
-      {/* <Header /> */}
-      
-      <ShoppingApp />
-    </>
+    <CategoriesScreen />
   )
 }
 
