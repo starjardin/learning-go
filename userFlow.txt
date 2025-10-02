@@ -1,0 +1,150 @@
+graph TD
+    Start([User Actions]) --> RegFlow[Registration Flow]
+    Start --> LoginFlow[Login Flow]
+    Start --> ResetFlow[Password Reset Flow]
+    Start --> SocialFlow[Social Login Flow]
+
+    %% REGISTRATION FLOW
+    RegFlow --> R1[User submits registration form]
+    R1 --> R2[Server validates input]
+    R2 --> R3{Email/Username exists?}
+    R3 -->|Yes| R4[Return error]
+    R3 -->|No| R5[Hash password with bcrypt]
+    R5 --> R6[INSERT into users table]
+    R6 --> R7[INSERT into user_security table]
+    R7 --> R8[Generate verification token]
+    R8 --> R9[INSERT into email_verifications]
+    R9 --> R10[Send verification email]
+    R10 --> R11[Return success message]
+    
+    R11 --> V1[User clicks email link]
+    V1 --> V2[Server validates token]
+    V2 --> V3{Token valid & not expired?}
+    V3 -->|No| V4[Return error]
+    V3 -->|Yes| V5[UPDATE users SET is_verified=true]
+    V5 --> V6[UPDATE email_verifications SET verified_at]
+    V6 --> V7[Account activated]
+
+    %% LOGIN FLOW
+    LoginFlow --> L1[User submits credentials]
+    L1 --> L2[SELECT user by email/username]
+    L2 --> L3{User exists?}
+    L3 -->|No| L4[INSERT into login_history - failed]
+    L4 --> L5[Return error]
+    
+    L3 -->|Yes| L6{Account active & verified?}
+    L6 -->|No| L7[Return error: not verified/inactive]
+    
+    L6 -->|Yes| L8[Check user_security for lockout]
+    L8 --> L9{Account locked?}
+    L9 -->|Yes| L10[Return error: account locked]
+    
+    L9 -->|No| L11[Compare password hash]
+    L11 --> L12{Password correct?}
+    L12 -->|No| L13[INCREMENT failed_login_attempts]
+    L13 --> L14{Attempts >= 5?}
+    L14 -->|Yes| L15[Lock account for 30 minutes]
+    L15 --> L16[INSERT login_history - failed]
+    L14 -->|No| L16
+    L16 --> L17[Return error]
+    
+    L12 -->|Yes| L18[RESET failed_login_attempts to 0]
+    L18 --> L19{2FA enabled?}
+    L19 -->|Yes| L20[Request 2FA code]
+    L20 --> L21[User enters code]
+    L21 --> L22{Code valid?}
+    L22 -->|No| L23[Return error]
+    L22 -->|Yes| L24[Continue to session creation]
+    
+    L19 -->|No| L24
+    L24 --> L25[Generate session_token & refresh_token]
+    L25 --> L26[INSERT into user_sessions]
+    L26 --> L27[UPDATE users SET last_login_at]
+    L27 --> L28[INSERT into login_history - success]
+    L28 --> L29[Return tokens to client]
+    L29 --> L30[Client stores tokens]
+
+    %% PASSWORD RESET FLOW
+    ResetFlow --> P1[User requests password reset]
+    P1 --> P2[SELECT user by email]
+    P2 --> P3{User exists?}
+    P3 -->|No| P4[Return success anyway - security]
+    P3 -->|Yes| P5[Generate reset token]
+    P5 --> P6[INSERT into password_resets]
+    P6 --> P7[Send reset email with token]
+    P7 --> P8[Return success message]
+    
+    P8 --> P9[User clicks reset link]
+    P9 --> P10[Server validates token]
+    P10 --> P11{Token valid & not expired & not used?}
+    P11 -->|No| P12[Return error]
+    P11 -->|Yes| P13[User submits new password]
+    P13 --> P14[Hash new password]
+    P14 --> P15[UPDATE users SET password_hash]
+    P15 --> P16[UPDATE password_resets SET used_at]
+    P16 --> P17[UPDATE user_security SET password_changed_at]
+    P17 --> P18[DELETE all user_sessions - force re-login]
+    P18 --> P19[Send confirmation email]
+    P19 --> P20[Return success]
+
+    %% SOCIAL LOGIN FLOW
+    SocialFlow --> S1[User clicks social login button]
+    S1 --> S2[Redirect to OAuth provider]
+    S2 --> S3[User authorizes on provider]
+    S3 --> S4[Provider returns with code]
+    S4 --> S5[Exchange code for access_token]
+    S5 --> S6[Fetch user profile from provider]
+    S6 --> S7{Account exists in social_accounts?}
+    
+    S7 -->|Yes| S8[SELECT user via social_accounts]
+    S8 --> S9[UPDATE social_accounts tokens]
+    S9 --> S10[Continue to session creation]
+    
+    S7 -->|No| S11{User exists by email?}
+    S11 -->|Yes| S12[Link social account to user]
+    S12 --> S13[INSERT into social_accounts]
+    S13 --> S10
+    
+    S11 -->|No| S14[Create new user account]
+    S14 --> S15[INSERT into users]
+    S15 --> S16[SET is_verified=true - trusted provider]
+    S16 --> S17[INSERT into social_accounts]
+    S17 --> S18[INSERT into user_security]
+    S18 --> S10
+    
+    S10 --> S19[Generate session tokens]
+    S19 --> S20[INSERT into user_sessions]
+    S20 --> S21[INSERT into login_history]
+    S21 --> S22[Return tokens to client]
+
+    %% SESSION MANAGEMENT
+    L30 --> SM1[Subsequent API Requests]
+    S22 --> SM1
+    SM1 --> SM2[Client sends session_token]
+    SM2 --> SM3[Server validates token]
+    SM3 --> SM4{Token in user_sessions & not expired?}
+    SM4 -->|No| SM5[Return 401 Unauthorized]
+    SM5 --> SM6[Client uses refresh_token]
+    SM6 --> SM7{Refresh token valid?}
+    SM7 -->|No| SM8[Force re-login]
+    SM7 -->|Yes| SM9[Generate new session_token]
+    SM9 --> SM10[UPDATE user_sessions]
+    SM10 --> SM11[Return new token]
+    
+    SM4 -->|Yes| SM12[UPDATE last_activity_at]
+    SM12 --> SM13[Process request]
+    SM13 --> SM14[Return response]
+
+    style RegFlow fill:#667eea,color:#fff
+    style LoginFlow fill:#667eea,color:#fff
+    style ResetFlow fill:#667eea,color:#fff
+    style SocialFlow fill:#667eea,color:#fff
+    style V7 fill:#10b981,color:#fff
+    style L29 fill:#10b981,color:#fff
+    style P20 fill:#10b981,color:#fff
+    style S22 fill:#10b981,color:#fff
+    style L5 fill:#ef4444,color:#fff
+    style L10 fill:#ef4444,color:#fff
+    style L17 fill:#ef4444,color:#fff
+    style L23 fill:#ef4444,color:#fff
+    style SM8 fill:#ef4444,color:#fff

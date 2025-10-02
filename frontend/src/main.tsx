@@ -23,12 +23,10 @@ const client = new ApolloClient({
   cache: new InMemoryCache(),
 });
 
-// Simple auth utility
 function isAuthenticated() {
-  return !!localStorage.getItem('token');
+  return !localStorage.getItem('token');
 }
 
-// Auth loader
 function requireAuthLoader() {
   if (isAuthenticated()) {
     throw redirect("/signin");
