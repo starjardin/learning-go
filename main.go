@@ -16,6 +16,7 @@ import (
 	_ "github.com/lib/pq"
 	db "github.com/starjardin/onja-products/db/sqlc"
 	"github.com/starjardin/onja-products/graph"
+	"github.com/starjardin/onja-products/token"
 	"github.com/starjardin/onja-products/utils"
 	"github.com/vektah/gqlparser/v2/ast"
 )
@@ -33,6 +34,11 @@ func main() {
 		log.Fatal("cannot load config:", err)
 	}
 
+	tokenMaker, err := token.NewPasetoMaker(config.TokenSymetricKey)
+	if err != nil {
+		log.Fatal("cannot create token maker:", err)
+	}
+
 	connPool, err := pgxpool.New(context.Background(), config.DBSource)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Unable to connect to database: %v\n", err)
@@ -43,8 +49,9 @@ func main() {
 	queries := db.New(connPool)
 
 	resolver := &graph.Resolver{
-		DB:      &store,
-		Queries: queries,
+		DB:         &store,
+		Queries:    queries,
+		TokenMaker: tokenMaker,
 	}
 
 	srv := handler.New(graph.NewExecutableSchema(graph.Config{Resolvers: resolver}))

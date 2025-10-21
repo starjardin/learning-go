@@ -11,8 +11,8 @@ SELECT * FROM users
 ORDER BY id;
 
 -- name: CreateUser :one
-INSERT INTO users (username, hashed_password, email, full_name, address, phone_number, payment_method, password_change_at, company_id)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+INSERT INTO users (username, hashed_password, email, full_name, address, phone_number, payment_method, password_changed_at, company_id, created_at, updated_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 RETURNING *;
 
 -- name: UpdateUser :one
@@ -25,7 +25,7 @@ SET
     address = coalesce(sqlc.narg('address'), address),
     phone_number = coalesce(sqlc.narg('phone_number'), phone_number),
     payment_method = coalesce(sqlc.narg('payment_method'), payment_method),
-    password_change_at = coalesce(sqlc.narg('password_change_at'), password_change_at),
+    password_changed_at = coalesce(sqlc.narg('password_changed_at'), password_changed_at),
     company_id = coalesce(sqlc.narg('company_id'), company_id)
 WHERE id = sqlc.arg('id')
 RETURNING *;

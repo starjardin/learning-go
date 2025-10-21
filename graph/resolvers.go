@@ -18,12 +18,6 @@ import (
 
 // CreateUser is the resolver for the createUser field.
 func (r *mutationResolver) CreateUser(ctx context.Context, input model.UserInput) (*model.User, error) {
-	hashedPassword, err := utils.HashedPassword(input.Password)
-
-	if err != nil {
-		return nil, fmt.Errorf("failed to hash password: %w", err)
-	}
-
 	email := input.Email
 
 	userByEmail, err := r.Resolver.Queries.GetUserByEmail(ctx, email)
@@ -36,30 +30,53 @@ func (r *mutationResolver) CreateUser(ctx context.Context, input model.UserInput
 		return nil, fmt.Errorf("user with email %s already exists", email)
 	}
 
+	hashedPassword, err := utils.HashedPassword(input.Password)
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to hash password: %w", err)
+	}
+
 	user, err := r.Resolver.Queries.CreateUser(ctx, db.CreateUserParams{
-		Username:         input.Username,
-		HashedPassword:   hashedPassword,
-		Email:            input.Email,
-		FullName:         input.FullName,
-		Address:          input.Address,
-		PhoneNumber:      input.PhoneNumber,
-		PaymentMethod:    input.PaymentMethod,
-		PasswordChangeAt: pgtype.Timestamptz{Time: time.Now(), Valid: true},
-		CompanyID:        pgtype.Int4{Valid: input.CompanyID != nil, Int32: int32(*input.CompanyID)},
+		Username:          input.Username,
+		HashedPassword:    hashedPassword,
+		Email:             input.Email,
+		FullName:          input.FullName,
+		Address:           pgtype.Text{String: input.Address, Valid: input.Address != ""},
+		PhoneNumber:       pgtype.Text{String: input.PhoneNumber, Valid: input.PhoneNumber != ""},
+		PaymentMethod:     pgtype.Text{String: input.PaymentMethod, Valid: input.PaymentMethod != ""},
+		PasswordChangedAt: pgtype.Timestamptz{Time: time.Now(), Valid: true},
+		CompanyID:         pgtype.Int4{Valid: input.CompanyID != nil, Int32: int32(*input.CompanyID)},
 	})
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to create user: %w", err)
 	}
 
+	_, err = r.Resolver.Queries.CreateUserSecurity(ctx, db.CreateUserSecurityParams{
+		UserID:            user.ID,
+		SecurityQuestions: make([]byte, 0),
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("falied to insert user security: %w", err)
+	}
+
+	token, payload, err := r.TokenMaker.CreateToken(user.Username, "user", time.Hour)
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to create token: %w", err)
+	}
+
+	fmt.Println("Here is the token:", token, payload)
+
 	return &model.User{
 		ID:            fmt.Sprintf("%d", user.ID),
 		Username:      user.Username,
 		Email:         user.Email,
 		FullName:      user.FullName,
-		Address:       user.Address,
-		PhoneNumber:   user.PhoneNumber,
-		PaymentMethod: user.PaymentMethod,
+		Address:       user.Address.String,
+		PhoneNumber:   user.PhoneNumber.String,
+		PaymentMethod: user.PaymentMethod.String,
 	}, nil
 }
 
@@ -80,7 +97,7 @@ func (r *mutationResolver) UpdateUser(ctx context.Context, id string, input mode
 			return nil, fmt.Errorf("failed to hash password: %w", err)
 		}
 		params.HashedPassword = pgtype.Text{Valid: true, String: hashedPassword}
-		params.PasswordChangeAt = pgtype.Timestamptz{Time: time.Now(), Valid: true}
+		params.PasswordChangedAt = pgtype.Timestamptz{Time: time.Now(), Valid: true}
 	}
 
 	if input.Username != nil {
@@ -123,9 +140,9 @@ func (r *mutationResolver) UpdateUser(ctx context.Context, id string, input mode
 		Username:      user.Username,
 		Email:         user.Email,
 		FullName:      user.FullName,
-		Address:       user.Address,
-		PhoneNumber:   user.PhoneNumber,
-		PaymentMethod: user.PaymentMethod,
+		Address:       user.Address.String,
+		PhoneNumber:   user.PhoneNumber.String,
+		PaymentMethod: user.PaymentMethod.String,
 	}, nil
 }
 
@@ -314,9 +331,9 @@ func (r *queryResolver) GetUser(ctx context.Context, id string) (*model.User, er
 		Username:      user.Username,
 		Email:         user.Email,
 		FullName:      user.FullName,
-		Address:       user.Address,
-		PhoneNumber:   user.PhoneNumber,
-		PaymentMethod: user.PaymentMethod,
+		Address:       user.Address.String,
+		PhoneNumber:   user.PhoneNumber.String,
+		PaymentMethod: user.PaymentMethod.String,
 	}, nil
 }
 
@@ -334,9 +351,9 @@ func (r *queryResolver) ListUsers(ctx context.Context) ([]*model.User, error) {
 			Username:      user.Username,
 			Email:         user.Email,
 			FullName:      user.FullName,
-			Address:       user.Address,
-			PhoneNumber:   user.PhoneNumber,
-			PaymentMethod: user.PaymentMethod,
+			Address:       user.Address.String,
+			PhoneNumber:   user.PhoneNumber.String,
+			PaymentMethod: user.PaymentMethod.String,
 		})
 	}
 
