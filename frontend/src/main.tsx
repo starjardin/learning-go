@@ -5,6 +5,7 @@ import App from './App.tsx'
 
 import { ApolloClient, HttpLink, InMemoryCache } from "@apollo/client";
 import { ApolloProvider } from "@apollo/client/react";
+import { AuthProvider } from "./contexts/AuthContext";
 
 import {
   createBrowserRouter,
@@ -24,7 +25,7 @@ const client = new ApolloClient({
 });
 
 function isAuthenticated() {
-  return !localStorage.getItem('token');
+  return !!localStorage.getItem('token');
 }
 
 function requireAuthLoader() {
@@ -59,6 +60,12 @@ const router = createBrowserRouter([
     errorElement: <ErrorBoundary />
   },
   {
+    path: "/welcome",
+    element: <WelcomeScreen />,
+    loader: requireAuthLoader,
+    errorElement: <ErrorBoundary />
+  },
+  {
     path: "/products",
     element: <ProductsScreen />,
     loader: requireAuthLoader,
@@ -80,7 +87,9 @@ const router = createBrowserRouter([
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ApolloProvider client={client}>
-      <RouterProvider router={router} />
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>
     </ApolloProvider>
   </StrictMode>,
 )

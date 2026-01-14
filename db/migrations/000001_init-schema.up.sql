@@ -2,13 +2,13 @@
 -- ONJA PRODUCTS DATABASE SCHEMA
 -- ============================================
 
--- -- Companies table
--- CREATE TABLE companies (
---     id SERIAL PRIMARY KEY,
---     name VARCHAR(255) UNIQUE NOT NULL,
---     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
---     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
--- );
+-- Companies table
+CREATE TABLE companies (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) UNIQUE NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
 
 -- Users table
 CREATE TABLE users (
@@ -31,31 +31,31 @@ CREATE TABLE users (
     CONSTRAINT email_format CHECK (email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$')
 );
 
--- -- Products table
--- CREATE TABLE products (
---     id SERIAL PRIMARY KEY,
---     name VARCHAR(255) NOT NULL,
---     image_link VARCHAR(500) NOT NULL,
---     description TEXT NOT NULL,
---     available_stocks INTEGER NOT NULL CHECK (available_stocks >= 0),
---     price INTEGER NOT NULL CHECK (price > 0),
---     is_negotiable BOOLEAN NOT NULL DEFAULT FALSE,
---     owner_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
---     company_id INTEGER REFERENCES companies(id),
---     likes INTEGER NOT NULL DEFAULT 0 CHECK (likes >= 0),
---     sold BOOLEAN NOT NULL DEFAULT FALSE,
---     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
---     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
--- );
+-- Products table
+CREATE TABLE products (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    image_link VARCHAR(500) NOT NULL,
+    description TEXT NOT NULL,
+    available_stocks INTEGER NOT NULL CHECK (available_stocks >= 0),
+    price INTEGER NOT NULL CHECK (price > 0),
+    is_negotiable BOOLEAN NOT NULL DEFAULT FALSE,
+    owner_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    company_id INTEGER REFERENCES companies(id),
+    likes INTEGER NOT NULL DEFAULT 0 CHECK (likes >= 0),
+    sold BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
 
--- -- Product likes junction table
--- CREATE TABLE product_likes (
---     product_id INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,
---     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
---     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+-- Product likes junction table
+CREATE TABLE product_likes (
+    product_id INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     
---     PRIMARY KEY (product_id, user_id)
--- );
+    PRIMARY KEY (product_id, user_id)
+);
 
 -- Email verification tokens
 CREATE TABLE email_verifications (
@@ -91,6 +91,19 @@ CREATE TABLE user_sessions (
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     last_activity_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     is_active BOOLEAN DEFAULT TRUE
+);
+
+-- User security table for tracking login attempts and security settings
+CREATE TABLE user_security (
+    user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    two_factor_enabled BOOLEAN DEFAULT FALSE,
+    two_factor_secret VARCHAR(255),
+    backup_codes JSONB,
+    failed_login_attempts INTEGER DEFAULT 0,
+    account_locked_until TIMESTAMPTZ,
+    security_questions JSONB,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
 -- -- User roles and permissions

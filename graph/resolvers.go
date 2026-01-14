@@ -17,7 +17,7 @@ import (
 )
 
 // CreateUser is the resolver for the createUser field.
-func (r *mutationResolver) CreateUser(ctx context.Context, input model.UserInput) (*model.User, error) {
+func (r *mutationResolver) CreateUser(ctx context.Context, input model.UserInput) (*model.AuthResponse, error) {
 	email := input.Email
 
 	userByEmail, err := r.Resolver.Queries.GetUserByEmail(ctx, email)
@@ -36,6 +36,13 @@ func (r *mutationResolver) CreateUser(ctx context.Context, input model.UserInput
 		return nil, fmt.Errorf("failed to hash password: %w", err)
 	}
 
+	var companyID pgtype.Int4
+	if input.CompanyID != nil {
+		companyID = pgtype.Int4{Valid: true, Int32: int32(*input.CompanyID)}
+	} else {
+		companyID = pgtype.Int4{Valid: false}
+	}
+
 	user, err := r.Resolver.Queries.CreateUser(ctx, db.CreateUserParams{
 		Username:          input.Username,
 		HashedPassword:    hashedPassword,
@@ -45,7 +52,7 @@ func (r *mutationResolver) CreateUser(ctx context.Context, input model.UserInput
 		PhoneNumber:       pgtype.Text{String: input.PhoneNumber, Valid: input.PhoneNumber != ""},
 		PaymentMethod:     pgtype.Text{String: input.PaymentMethod, Valid: input.PaymentMethod != ""},
 		PasswordChangedAt: pgtype.Timestamptz{Time: time.Now(), Valid: true},
-		CompanyID:         pgtype.Int4{Valid: input.CompanyID != nil, Int32: int32(*input.CompanyID)},
+		CompanyID:         companyID,
 	})
 
 	if err != nil {
@@ -54,29 +61,37 @@ func (r *mutationResolver) CreateUser(ctx context.Context, input model.UserInput
 
 	_, err = r.Resolver.Queries.CreateUserSecurity(ctx, db.CreateUserSecurityParams{
 		UserID:            user.ID,
-		SecurityQuestions: make([]byte, 0),
+		SecurityQuestions: []byte("[]"),
 	})
 
 	if err != nil {
 		return nil, fmt.Errorf("falied to insert user security: %w", err)
 	}
 
-	token, payload, err := r.TokenMaker.CreateToken(user.Username, "user", time.Hour)
+	accessToken, _, err := r.TokenMaker.CreateToken(user.Username, "user", 24*time.Hour)
 
 	if err != nil {
-		return nil, fmt.Errorf("failed to create token: %w", err)
+		return nil, fmt.Errorf("failed to create access token: %w", err)
 	}
 
-	fmt.Println("Here is the token:", token, payload)
+	refreshToken, _, err := r.TokenMaker.CreateToken(user.Username, "user", 7*24*time.Hour)
 
-	return &model.User{
-		ID:            fmt.Sprintf("%d", user.ID),
-		Username:      user.Username,
-		Email:         user.Email,
-		FullName:      user.FullName,
-		Address:       user.Address.String,
-		PhoneNumber:   user.PhoneNumber.String,
-		PaymentMethod: user.PaymentMethod.String,
+	if err != nil {
+		return nil, fmt.Errorf("failed to create refresh token: %w", err)
+	}
+
+	return &model.AuthResponse{
+		User: &model.User{
+			ID:            fmt.Sprintf("%d", user.ID),
+			Username:      user.Username,
+			Email:         user.Email,
+			FullName:      user.FullName,
+			Address:       user.Address.String,
+			PhoneNumber:   user.PhoneNumber.String,
+			PaymentMethod: user.PaymentMethod.String,
+		},
+		Token:        accessToken,
+		RefreshToken: refreshToken,
 	}, nil
 }
 
@@ -314,6 +329,83 @@ func (r *mutationResolver) DeleteCompany(ctx context.Context, id string) (bool, 
 	return true, nil
 }
 
+// Login is the resolver for the login field.
+func (r *mutationResolver) Login(ctx context.Context, email string, password string) (*model.AuthResponse, error) {
+	user, err := r.Resolver.Queries.GetUserByEmail(ctx, email)
+	if err != nil {
+		if err.Error() == "no rows in result set" {
+			return nil, fmt.Errorf("invalid email or password")
+		}
+		return nil, fmt.Errorf("failed to find user: %w", err)
+	}
+
+	err = utils.CheckPassword(password, user.HashedPassword)
+	if err != nil {
+		return nil, fmt.Errorf("invalid email or password")
+	}
+
+	accessToken, _, err := r.TokenMaker.CreateToken(user.Username, "user", 24*time.Hour)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create access token: %w", err)
+	}
+
+	refreshToken, _, err := r.TokenMaker.CreateToken(user.Username, "user", 7*24*time.Hour)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create refresh token: %w", err)
+	}
+
+	return &model.AuthResponse{
+		User: &model.User{
+			ID:            fmt.Sprintf("%d", user.ID),
+			Username:      user.Username,
+			Email:         user.Email,
+			FullName:      user.FullName,
+			Address:       user.Address.String,
+			PhoneNumber:   user.PhoneNumber.String,
+			PaymentMethod: user.PaymentMethod.String,
+		},
+		Token:        accessToken,
+		RefreshToken: refreshToken,
+	}, nil
+}
+
+// RefreshToken is the resolver for the refreshToken field.
+func (r *mutationResolver) RefreshToken(ctx context.Context, token string) (*model.AuthResponse, error) {
+	payload, err := r.TokenMaker.VerifyToken(token)
+	if err != nil {
+		return nil, fmt.Errorf("invalid refresh token: %w", err)
+	}
+
+	user, err := r.Resolver.Queries.GetUserByEmail(ctx, payload.Username)
+	if err != nil {
+		return nil, fmt.Errorf("user not found: %w", err)
+	}
+
+	newAccessToken, _, err := r.TokenMaker.CreateToken(user.Username, "user", 24*time.Hour)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create new access token: %w", err)
+	}
+
+	newRefreshToken, _, err := r.TokenMaker.CreateToken(user.Username, "user", 7*24*time.Hour)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create new refresh token: %w", err)
+	}
+
+	return &model.AuthResponse{
+		User: &model.User{
+			ID:            fmt.Sprintf("%d", user.ID),
+			Username:      user.Username,
+			Email:         user.Email,
+			FullName:      user.FullName,
+			Address:       user.Address.String,
+			PhoneNumber:   user.PhoneNumber.String,
+			PaymentMethod: user.PaymentMethod.String,
+		},
+		Token:        newAccessToken,
+		RefreshToken: newRefreshToken,
+	}, nil
+}
+
 // GetUser is the resolver for the getUser field.
 func (r *queryResolver) GetUser(ctx context.Context, id string) (*model.User, error) {
 	userID, err := strconv.ParseInt(id, 10, 64)
@@ -405,13 +497,17 @@ func (r *queryResolver) GetProducts(ctx context.Context) ([]*model.Product, erro
 
 	var result []*model.Product
 	for _, product := range products {
+		var responseCompanyID int
+		if product.CompanyID.Valid {
+			responseCompanyID = int(product.CompanyID.Int32)
+		}
 		result = append(result, &model.Product{
-			ID:          fmt.Sprintf("%d", product.ID),
-			Name:        product.Name,
-			Description: product.Description,
-			Price:       int(product.Price),
-			OwnerID:     int(product.OwnerID),
-			// CompanyID:      &responseCompanyID,
+			ID:              fmt.Sprintf("%d", product.ID),
+			Name:            product.Name,
+			Description:     product.Description,
+			Price:           int(product.Price),
+			OwnerID:         int(product.OwnerID),
+			CompanyID:       &responseCompanyID,
 			ImageLink:       product.ImageLink,
 			AvailableStocks: int(product.AvailableStocks),
 			IsNegotiable:    product.IsNegotiable,

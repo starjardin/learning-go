@@ -26,18 +26,6 @@ type EmailVerification struct {
 	CreatedAt  pgtype.Timestamptz `db:"created_at" json:"created_at"`
 }
 
-type LoginHistory struct {
-	ID            int32              `db:"id" json:"id"`
-	UserID        pgtype.Int4        `db:"user_id" json:"user_id"`
-	Email         pgtype.Text        `db:"email" json:"email"`
-	LoginStatus   string             `db:"login_status" json:"login_status"`
-	IpAddress     *netip.Addr        `db:"ip_address" json:"ip_address"`
-	UserAgent     pgtype.Text        `db:"user_agent" json:"user_agent"`
-	Location      []byte             `db:"location" json:"location"`
-	FailureReason pgtype.Text        `db:"failure_reason" json:"failure_reason"`
-	CreatedAt     pgtype.Timestamptz `db:"created_at" json:"created_at"`
-}
-
 type PasswordReset struct {
 	ID        int32              `db:"id" json:"id"`
 	UserID    int32              `db:"user_id" json:"user_id"`
@@ -70,27 +58,6 @@ type ProductLike struct {
 	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
 }
 
-type Role struct {
-	ID          int32              `db:"id" json:"id"`
-	Name        string             `db:"name" json:"name"`
-	Description pgtype.Text        `db:"description" json:"description"`
-	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
-}
-
-type SocialAccount struct {
-	ID             int32              `db:"id" json:"id"`
-	UserID         int32              `db:"user_id" json:"user_id"`
-	Provider       string             `db:"provider" json:"provider"`
-	ProviderUserID string             `db:"provider_user_id" json:"provider_user_id"`
-	ProviderEmail  pgtype.Text        `db:"provider_email" json:"provider_email"`
-	AccessToken    pgtype.Text        `db:"access_token" json:"access_token"`
-	RefreshToken   pgtype.Text        `db:"refresh_token" json:"refresh_token"`
-	TokenExpiresAt pgtype.Timestamptz `db:"token_expires_at" json:"token_expires_at"`
-	ProfileData    []byte             `db:"profile_data" json:"profile_data"`
-	CreatedAt      pgtype.Timestamptz `db:"created_at" json:"created_at"`
-	UpdatedAt      pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
-}
-
 type User struct {
 	ID                int32              `db:"id" json:"id"`
 	Email             string             `db:"email" json:"email"`
@@ -109,17 +76,11 @@ type User struct {
 	LastLoginAt       pgtype.Timestamptz `db:"last_login_at" json:"last_login_at"`
 }
 
-type UserRole struct {
-	UserID     int32              `db:"user_id" json:"user_id"`
-	RoleID     int32              `db:"role_id" json:"role_id"`
-	AssignedAt pgtype.Timestamptz `db:"assigned_at" json:"assigned_at"`
-}
-
 type UserSecurity struct {
 	UserID              int32              `db:"user_id" json:"user_id"`
 	TwoFactorEnabled    pgtype.Bool        `db:"two_factor_enabled" json:"two_factor_enabled"`
 	TwoFactorSecret     pgtype.Text        `db:"two_factor_secret" json:"two_factor_secret"`
-	BackupCodes         []string           `db:"backup_codes" json:"backup_codes"`
+	BackupCodes         []byte             `db:"backup_codes" json:"backup_codes"`
 	FailedLoginAttempts pgtype.Int4        `db:"failed_login_attempts" json:"failed_login_attempts"`
 	AccountLockedUntil  pgtype.Timestamptz `db:"account_locked_until" json:"account_locked_until"`
 	SecurityQuestions   []byte             `db:"security_questions" json:"security_questions"`

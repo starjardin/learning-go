@@ -2,6 +2,12 @@
 
 package model
 
+type AuthResponse struct {
+	User         *User  `json:"user"`
+	Token        string `json:"token"`
+	RefreshToken string `json:"refreshToken"`
+}
+
 type Company struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`

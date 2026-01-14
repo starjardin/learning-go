@@ -29,6 +29,12 @@ type User {
   payment_method: String!
   company_id: Int
 }
+
+type AuthResponse {
+  user: User!
+  token: String!
+  refreshToken: String!
+}
 type Query {
   getUser(id: ID!): User
   listUsers: [User!]!
@@ -40,7 +46,7 @@ type Query {
 type Mutation {
   createUser(
     input: UserInput!
-  ): User!
+  ): AuthResponse!
 
   updateUser(
     id: ID!
@@ -53,6 +59,15 @@ type Mutation {
   createProduct(input: CreateProductInput!): Product!
   updateProduct(id: ID!, input: UpdateProductInput!): Product!
   deleteCompany(id: ID!): Boolean!
+
+  login(
+    email: String!
+    password: String!
+  ): AuthResponse!
+
+  refreshToken(
+    token: String!
+  ): AuthResponse!
 }
 
 input UserInput {
