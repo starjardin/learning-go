@@ -1,5 +1,4 @@
-import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
-import { ApolloClient, useMutation } from '@apollo/client';
+import React, { createContext, useContext, useReducer, useEffect, type ReactNode } from 'react';
 import { gql } from '@apollo/client';
 
 // GraphQL Mutations
@@ -10,10 +9,10 @@ const LOGIN_MUTATION = gql`
         id
         username
         email
-        fullName
+        full_name
         address
-        phoneNumber
-        paymentMethod
+        phone_number
+        payment_method
       }
       token
       refreshToken
@@ -28,10 +27,10 @@ const REGISTER_MUTATION = gql`
         id
         username
         email
-        fullName
+        full_name
         address
-        phoneNumber
-        paymentMethod
+        phone_number
+        payment_method
       }
       token
       refreshToken
@@ -44,10 +43,10 @@ interface User {
   id: string;
   username: string;
   email: string;
-  fullName: string;
+  full_name: string;
   address: string;
-  phoneNumber: string;
-  paymentMethod: string;
+  phone_number: string;
+  payment_method: string;
 }
 
 interface AuthResponse {
@@ -69,6 +68,7 @@ interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<void>;
   register: (userData: any) => Promise<void>;
   logout: () => void;
+  clearError: () => void;
 }
 
 // Action types
@@ -181,10 +181,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                   id
                   username
                   email
-                  fullName
+                  full_name
                   address
-                  phoneNumber
-                  paymentMethod
+                  phone_number
+                  payment_method
                 }
                 token
                 refreshToken
@@ -225,10 +225,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                   id
                   username
                   email
-                  fullName
+                  full_name
                   address
-                  phoneNumber
-                  paymentMethod
+                  phone_number
+                  payment_method
                 }
                 token
                 refreshToken

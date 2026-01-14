@@ -5,7 +5,6 @@ import App from './App.tsx'
 
 import { ApolloClient, HttpLink, InMemoryCache } from "@apollo/client";
 import { ApolloProvider } from "@apollo/client/react";
-import { AuthProvider } from "./contexts/AuthContext";
 
 import {
   createBrowserRouter,
@@ -18,6 +17,7 @@ import { LoginScreen } from './components/SignIn.tsx';
 import { RegisterScreen } from './components/Registers.tsx';
 import { ProductsScreen } from './components/ProductsScreen.tsx';
 import { CategoriesScreen } from './components/CategoriesScreen.tsx';
+import { AuthProvider } from './contexts/AuthContext.tsx';
 
 const client = new ApolloClient({
   link: new HttpLink({ uri: "http://localhost:8080/graphql" }),
@@ -25,8 +25,10 @@ const client = new ApolloClient({
 });
 
 function isAuthenticated() {
-  return !!localStorage.getItem('token');
+  return !localStorage.getItem('token');
 }
+
+
 
 function requireAuthLoader() {
   if (isAuthenticated()) {
@@ -60,12 +62,6 @@ const router = createBrowserRouter([
     errorElement: <ErrorBoundary />
   },
   {
-    path: "/welcome",
-    element: <WelcomeScreen />,
-    loader: requireAuthLoader,
-    errorElement: <ErrorBoundary />
-  },
-  {
     path: "/products",
     element: <ProductsScreen />,
     loader: requireAuthLoader,
@@ -86,10 +82,10 @@ const router = createBrowserRouter([
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <ApolloProvider client={client}>
-      <AuthProvider>
+    <AuthProvider>
+      <ApolloProvider client={client}>
         <RouterProvider router={router} />
-      </AuthProvider>
-    </ApolloProvider>
+      </ApolloProvider>
+    </AuthProvider>
   </StrictMode>,
 )

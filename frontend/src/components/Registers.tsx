@@ -31,10 +31,10 @@ export const RegisterScreen = () => {
                 username: registerForm.username,
                 email: registerForm.email,
                 password: registerForm.password,
-                fullName: registerForm.full_name,
+                full_name: registerForm.full_name,
                 address: registerForm.address,
-                phoneNumber: registerForm.phone_number,
-                paymentMethod: registerForm.payment_method,
+                phone_number: registerForm.phone_number,
+                payment_method: registerForm.payment_method,
             };
             
             await register(userData);
@@ -294,7 +294,6 @@ export const RegisterScreen = () => {
             </p>
           </div>
         </div>
-      </div>
     );
 };
 
