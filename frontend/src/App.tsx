@@ -1,8 +1,8 @@
-import { CategoriesScreen } from "./components/CategoriesScreen"
+import Home from './components/Home'
 
 function App() {
   return (
-    <CategoriesScreen />
+    <Home />
   )
 }
 
