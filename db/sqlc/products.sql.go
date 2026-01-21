@@ -112,12 +112,160 @@ func (q *Queries) GetProduct(ctx context.Context, id int32) (Product, error) {
 	return i, err
 }
 
+const getProductCount = `-- name: GetProductCount :one
+SELECT COUNT(*) FROM products 
+WHERE 
+  ($1::text IS NULL OR name ILIKE '%' || $1 || '%')
+  AND ($2::int4 IS NULL OR price >= $2)
+  AND ($3::int4 IS NULL OR price <= $3)
+  AND ($4::int4 IS NULL OR available_stocks >= $4)
+  AND ($5::bool IS NULL OR sold = $5)
+  AND ($6::int4 IS NULL OR company_id = $6)
+`
+
+type GetProductCountParams struct {
+	Column1 string `db:"column_1" json:"column_1"`
+	Column2 int32  `db:"column_2" json:"column_2"`
+	Column3 int32  `db:"column_3" json:"column_3"`
+	Column4 int32  `db:"column_4" json:"column_4"`
+	Column5 bool   `db:"column_5" json:"column_5"`
+	Column6 int32  `db:"column_6" json:"column_6"`
+}
+
+func (q *Queries) GetProductCount(ctx context.Context, arg GetProductCountParams) (int64, error) {
+	row := q.db.QueryRow(ctx, getProductCount,
+		arg.Column1,
+		arg.Column2,
+		arg.Column3,
+		arg.Column4,
+		arg.Column5,
+		arg.Column6,
+	)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const getProducts = `-- name: GetProducts :many
 SELECT id, name, image_link, description, available_stocks, price, is_negotiable, owner_id, company_id, likes, sold, created_at, updated_at FROM products
 `
 
 func (q *Queries) GetProducts(ctx context.Context) ([]Product, error) {
 	rows, err := q.db.Query(ctx, getProducts)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Product
+	for rows.Next() {
+		var i Product
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.ImageLink,
+			&i.Description,
+			&i.AvailableStocks,
+			&i.Price,
+			&i.IsNegotiable,
+			&i.OwnerID,
+			&i.CompanyID,
+			&i.Likes,
+			&i.Sold,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getProductsAdvanced = `-- name: GetProductsAdvanced :many
+SELECT id, name, image_link, description, available_stocks, price, is_negotiable, owner_id, company_id, likes, sold, created_at, updated_at FROM products 
+WHERE 
+  ($1::text IS NULL OR name ILIKE '%' || $1 || '%')
+  AND ($2::int4 IS NULL OR price >= $2)
+  AND ($3::int4 IS NULL OR price <= $3)
+  AND ($4::int4 IS NULL OR available_stocks >= $4)
+  AND ($5::bool IS NULL OR sold = $5)
+  AND ($6::int4 IS NULL OR company_id = $6)
+ORDER BY 
+  CASE WHEN $7 = 'price_asc' THEN price END ASC,
+  CASE WHEN $7 = 'price_desc' THEN price END DESC,
+  CASE WHEN $7 = 'created_desc' THEN created_at END DESC,
+  CASE WHEN $7 = 'created_asc' THEN created_at END ASC,
+  id DESC
+LIMIT $8 OFFSET $9
+`
+
+type GetProductsAdvancedParams struct {
+	Column1 string      `db:"column_1" json:"column_1"`
+	Column2 int32       `db:"column_2" json:"column_2"`
+	Column3 int32       `db:"column_3" json:"column_3"`
+	Column4 int32       `db:"column_4" json:"column_4"`
+	Column5 bool        `db:"column_5" json:"column_5"`
+	Column6 int32       `db:"column_6" json:"column_6"`
+	Column7 interface{} `db:"column_7" json:"column_7"`
+	Limit   int32       `db:"limit" json:"limit"`
+	Offset  int32       `db:"offset" json:"offset"`
+}
+
+func (q *Queries) GetProductsAdvanced(ctx context.Context, arg GetProductsAdvancedParams) ([]Product, error) {
+	rows, err := q.db.Query(ctx, getProductsAdvanced,
+		arg.Column1,
+		arg.Column2,
+		arg.Column3,
+		arg.Column4,
+		arg.Column5,
+		arg.Column6,
+		arg.Column7,
+		arg.Limit,
+		arg.Offset,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Product
+	for rows.Next() {
+		var i Product
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.ImageLink,
+			&i.Description,
+			&i.AvailableStocks,
+			&i.Price,
+			&i.IsNegotiable,
+			&i.OwnerID,
+			&i.CompanyID,
+			&i.Likes,
+			&i.Sold,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getProductsByOwner = `-- name: GetProductsByOwner :many
+SELECT id, name, image_link, description, available_stocks, price, is_negotiable, owner_id, company_id, likes, sold, created_at, updated_at FROM products 
+WHERE owner_id = $1
+ORDER BY created_at DESC
+`
+
+func (q *Queries) GetProductsByOwner(ctx context.Context, ownerID int32) ([]Product, error) {
+	rows, err := q.db.Query(ctx, getProductsByOwner, ownerID)
 	if err != nil {
 		return nil, err
 	}

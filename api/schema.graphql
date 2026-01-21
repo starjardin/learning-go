@@ -35,6 +35,7 @@ type AuthResponse {
   token: String!
   refreshToken: String!
 }
+
 type Query {
   getUser(id: ID!): User
   listUsers: [User!]!
@@ -42,7 +43,28 @@ type Query {
   getCompany(id: ID!): Company
   getProducts: [Product!]!
   getProduct(id: ID!): Product
+  getProductsAdvanced(
+    search: String
+    minPrice: Int
+    maxPrice: Int
+    minStock: Int
+    sold: Boolean
+    companyId: Int
+    sortBy: String
+    limit: Int = 20
+    offset: Int = 0
+  ): [Product!]!
+  getProductsByOwner(ownerId: ID!): [Product!]!
+  getProductCount(
+    search: String
+    minPrice: Int
+    maxPrice: Int
+    minStock: Int
+    sold: Boolean
+    companyId: Int
+  ): Int!
 }
+
 type Mutation {
   createUser(
     input: UserInput!
@@ -58,6 +80,7 @@ type Mutation {
   updateCompany(id: ID!, name: String!): Company!
   createProduct(input: CreateProductInput!): Product!
   updateProduct(id: ID!, input: UpdateProductInput!): Product!
+  deleteProduct(id: ID!): Boolean!
   deleteCompany(id: ID!): Boolean!
 
   login(

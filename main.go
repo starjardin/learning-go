@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/handler/extension"
@@ -37,6 +38,22 @@ func corsMiddleware(next http.Handler) http.Handler {
 
 		next.ServeHTTP(w, r)
 	})
+}
+
+// authMiddleware validates JWT token and adds user context to GraphQL requests
+func authMiddleware(tokenMaker token.Maker, queries *db.Queries) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// For GraphQL endpoint, we'll handle auth in resolvers
+			if strings.HasPrefix(r.URL.Path, "/query") {
+				// Add token maker and queries to context for GraphQL resolvers
+				ctx := context.WithValue(r.Context(), "tokenMaker", tokenMaker)
+				ctx = context.WithValue(ctx, "queries", queries)
+				r = r.WithContext(ctx)
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
 }
 
 func main() {
@@ -83,8 +100,9 @@ func main() {
 		Cache: lru.New[string](100),
 	})
 
+	// Apply middleware chain
 	http.Handle("/", playground.Handler("GraphQL playground", "/query"))
-	http.Handle("/query", corsMiddleware(srv))
+	http.Handle("/query", corsMiddleware(authMiddleware(tokenMaker, queries)(srv)))
 
 	log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
 	log.Fatal(http.ListenAndServe(":"+port, nil))

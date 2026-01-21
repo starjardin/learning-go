@@ -11,6 +11,10 @@
   },
   "dependencies": {
     "@apollo/client": "^4.0.5",
+    "@graphql-codegen/cli": "^6.1.1",
+    "@graphql-codegen/typescript": "^5.0.7",
+    "@graphql-codegen/typescript-operations": "^5.0.7",
+    "@graphql-codegen/typescript-react-query": "^6.1.1",
     "@tailwindcss/vite": "^4.1.12",
     "graphql": "^16.11.0",
     "lucide-react": "^0.544.0",

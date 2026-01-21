@@ -31,3 +31,35 @@ RETURNING *;
 
 -- name: DeleteProduct :one
 DELETE FROM products WHERE id = $1 RETURNING *;
+
+-- name: GetProductsAdvanced :many
+SELECT * FROM products 
+WHERE 
+  ($1::text IS NULL OR name ILIKE '%' || $1 || '%')
+  AND ($2::int4 IS NULL OR price >= $2)
+  AND ($3::int4 IS NULL OR price <= $3)
+  AND ($4::int4 IS NULL OR available_stocks >= $4)
+  AND ($5::bool IS NULL OR sold = $5)
+  AND ($6::int4 IS NULL OR company_id = $6)
+ORDER BY 
+  CASE WHEN $7 = 'price_asc' THEN price END ASC,
+  CASE WHEN $7 = 'price_desc' THEN price END DESC,
+  CASE WHEN $7 = 'created_desc' THEN created_at END DESC,
+  CASE WHEN $7 = 'created_asc' THEN created_at END ASC,
+  id DESC
+LIMIT $8 OFFSET $9;
+
+-- name: GetProductsByOwner :many
+SELECT * FROM products 
+WHERE owner_id = $1
+ORDER BY created_at DESC;
+
+-- name: GetProductCount :one
+SELECT COUNT(*) FROM products 
+WHERE 
+  ($1::text IS NULL OR name ILIKE '%' || $1 || '%')
+  AND ($2::int4 IS NULL OR price >= $2)
+  AND ($3::int4 IS NULL OR price <= $3)
+  AND ($4::int4 IS NULL OR available_stocks >= $4)
+  AND ($5::bool IS NULL OR sold = $5)
+  AND ($6::int4 IS NULL OR company_id = $6);
