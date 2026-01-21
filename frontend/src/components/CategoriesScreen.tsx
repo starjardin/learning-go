@@ -1,5 +1,6 @@
-import { Grid3X3, Heart, Home, Link, Search, ShoppingCart, User } from "lucide-react";
+import { Grid3X3, Heart, Home, Link, Search, ShoppingCart, User, Plus } from "lucide-react";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
   const products = [
     { id: 1, name: 'Red T-Shirt', price: 24.99, rating: 4.5, image: '/api/placeholder/150/150', category: 'Clothing' },
@@ -11,6 +12,7 @@ import { useState } from "react";
   ];
 
 export const CategoriesScreen = () => {
+  const navigate = useNavigate();
 
     const [cartItems, setCartItems] = useState([
         { id: 1, name: 'Samsung Galaxy S22', price: 699.99, quantity: 1, image: '/api/placeholder/60/60' },
@@ -48,6 +50,13 @@ export const CategoriesScreen = () => {
               </span>
             )}
           </Link>
+          <button
+            onClick={() => navigate('/create-product')}
+            className="bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+          >
+            <Plus className="w-5 h-5" />
+            <span>Create</span>
+          </button>
         </div>
         
         <div className="relative">

@@ -18,6 +18,7 @@ import { RegisterScreen } from './components/Registers.tsx';
 import { ProductsScreen } from './components/ProductsScreen.tsx';
 import { CategoriesScreen } from './components/CategoriesScreen.tsx';
 import { AuthProvider } from './contexts/AuthContext.tsx';
+import { CreateProductScreen } from './components/CreateProductScreen.tsx';
 
 const client = new ApolloClient({
   link: new HttpLink({ uri: "http://localhost:8080/graphql" }),
@@ -27,8 +28,6 @@ const client = new ApolloClient({
 function isAuthenticated() {
   return !localStorage.getItem('token');
 }
-
-
 
 function requireAuthLoader() {
   if (isAuthenticated()) {
@@ -59,6 +58,12 @@ const router = createBrowserRouter([
   {
     path: "/register",
     element: <RegisterScreen />,
+    errorElement: <ErrorBoundary />
+  },
+  {
+    path: "/create-product",
+    element: <CreateProductScreen />,
+    loader: requireAuthLoader,
     errorElement: <ErrorBoundary />
   },
   {

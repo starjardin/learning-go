@@ -1,0 +1,114 @@
+scalar Date
+
+type Product {
+	id: ID!
+	name: String!
+	image_link: String!
+	description: String!
+	available_stocks: Int!
+	price: Int!
+	is_negotiable: Boolean!
+	owner_id: Int!
+	company_id: Int
+	likes: Int!
+	sold: Boolean!
+}
+
+type Company {
+  id: ID!
+  name: String!
+}
+
+type User {
+  id: ID!
+  username: String!
+  email: String!
+  full_name: String!
+  address: String!
+  phone_number: String!
+  payment_method: String!
+  company_id: Int
+}
+
+type AuthResponse {
+  user: User!
+  token: String!
+  refreshToken: String!
+}
+type Query {
+  getUser(id: ID!): User
+  listUsers: [User!]!
+  getCompanies: [Company!]!
+  getCompany(id: ID!): Company
+  getProducts: [Product!]!
+  getProduct(id: ID!): Product
+}
+type Mutation {
+  createUser(
+    input: UserInput!
+  ): AuthResponse!
+
+  updateUser(
+    id: ID!
+    input: UpdateUserInput!
+  ): User!
+
+  deleteUser(id: ID!): Boolean!
+  createCompany(name: String!): Company!
+  updateCompany(id: ID!, name: String!): Company!
+  createProduct(input: CreateProductInput!): Product!
+  updateProduct(id: ID!, input: UpdateProductInput!): Product!
+  deleteCompany(id: ID!): Boolean!
+
+  login(
+    email: String!
+    password: String!
+  ): AuthResponse!
+
+  refreshToken(
+    token: String!
+  ): AuthResponse!
+}
+
+input UserInput {
+  username: String!
+  password: String!
+  email: String!
+  full_name: String!
+  address: String!
+  phone_number: String!
+  payment_method: String!
+  company_id: Int
+}
+
+input UpdateUserInput {
+  username: String
+  password: String
+  email: String
+  full_name: String
+  address: String
+  phone_number: String
+  payment_method: String
+  company_id: Int
+}
+
+input UpdateProductInput {
+	name: String
+	image_link: String
+	description: String
+	available_stocks: Int
+	price: Int
+	is_negotiable: Boolean
+	sold: Boolean
+}
+
+input CreateProductInput {
+	name: String!
+	image_link: String!
+	description: String!
+	available_stocks: Int!
+	price: Int!
+	is_negotiable: Boolean!
+	owner_id: Int!
+	company_id: Int
+}
