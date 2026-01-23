@@ -18,6 +18,7 @@ type Querier interface {
 	DeleteCompany(ctx context.Context, id int32) error
 	DeleteProduct(ctx context.Context, id int32) (Product, error)
 	DeleteUser(ctx context.Context, id int32) error
+	GetCategories(ctx context.Context) ([]Category, error)
 	GetCompanies(ctx context.Context) ([]Company, error)
 	GetCompaniesByNameOrId(ctx context.Context, name string) ([]Company, error)
 	GetCompany(ctx context.Context, id int32) (Company, error)
@@ -26,7 +27,7 @@ type Querier interface {
 	GetCompanyByNameOrId(ctx context.Context, name string) (Company, error)
 	GetProduct(ctx context.Context, id int32) (Product, error)
 	GetProductCount(ctx context.Context, arg GetProductCountParams) (int64, error)
-	GetProducts(ctx context.Context) ([]Product, error)
+	GetProducts(ctx context.Context, dollar_1 string) ([]Product, error)
 	GetProductsAdvanced(ctx context.Context, arg GetProductsAdvancedParams) ([]Product, error)
 	GetProductsByOwner(ctx context.Context, ownerID int32) ([]Product, error)
 	GetUser(ctx context.Context, id int32) (User, error)

@@ -1,32 +1,29 @@
-import { Grid3X3, Heart, Home, Link, Search, ShoppingCart, User, Plus } from "lucide-react";
+import { Grid3X3, Heart, Home, Search, ShoppingCart, User, Plus } from "lucide-react";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
+import { useGetCategoriesQuery, useGetProductsQuery } from "../apollo/generated/graphql";
 
-  const products = [
-    { id: 1, name: 'Red T-Shirt', price: 24.99, rating: 4.5, image: '/api/placeholder/150/150', category: 'Clothing' },
-    { id: 2, name: 'Blue Jeans', price: 59.99, rating: 4.2, image: '/api/placeholder/150/150', category: 'Clothing' },
-    { id: 3, name: 'Samsung Phone', price: 699.99, rating: 4.7, image: '/api/placeholder/150/150', category: 'Electronics' },
-    { id: 4, name: 'Leather Bag', price: 89.99, rating: 4.3, image: '/api/placeholder/150/150', category: 'Accessories' },
-    { id: 5, name: 'Running Shoes', price: 129.99, rating: 4.6, image: '/api/placeholder/150/150', category: 'Sports' },
-    { id: 6, name: 'Coffee Mug', price: 14.99, rating: 4.1, image: '/api/placeholder/150/150', category: 'Home & Garden' }
-  ];
+const categoryIcons: Record<string, string> = {
+  CLOTHING: '👕',
+  ELECTRONICS: '📱',
+  ACCESSORIES: '👜',
+  HOME_AND_GARDEN: '🏠',
+  SPORTS: '⚽',
+  BOOKS: '📚',
+};
 
 export const CategoriesScreen = () => {
   const navigate = useNavigate();
+  const { data, loading, error } = useGetCategoriesQuery();
+  const { data: productsData } = useGetProductsQuery();
 
     const [cartItems, setCartItems] = useState([
         { id: 1, name: 'Samsung Galaxy S22', price: 699.99, quantity: 1, image: '/api/placeholder/60/60' },
         { id: 2, name: 'iPhone 14', price: 899.99, quantity: 2, image: '/api/placeholder/60/60' }
     ]);
 
-    const categories = [
-        { id: 1, name: 'Clothing', icon: '👕', count: 156 },
-        { id: 2, name: 'Electronics', icon: '📱', count: 89 },
-        { id: 3, name: 'Accessories', icon: '👜', count: 234 },
-        { id: 4, name: 'Home & Garden', icon: '🏠', count: 67 },
-        { id: 5, name: 'Sports', icon: '⚽', count: 123 },
-        { id: 6, name: 'Books', icon: '📚', count: 345 }
-    ];
+    const categories = data?.categories || [];
+    const products = productsData?.getProducts || [];
 
 
     return <div className="flex flex-col h-screen bg-white">
@@ -71,17 +68,14 @@ export const CategoriesScreen = () => {
 
       <div className="p-4">
         <h2 className="text-xl font-bold mb-4">Categories</h2>
+        {loading && <p className="text-gray-500">Loading categories...</p>}
+        {error && <p className="text-red-500">Error loading categories: {error.message}</p>}
         <div className="grid grid-cols-2 gap-4">
           {categories.map(category => (
-            <Link
-              key={category.id}
-              to={`products?category=${category.name}`}
-              className="bg-gray-50 p-6 rounded-xl text-center hover:bg-gray-100 transition-colors"
-            >
-              <div className="text-3xl mb-2">{category.icon}</div>
+            <div key={category.id} className="bg-gray-50 rounded-lg p-4 cursor-pointer hover:bg-gray-100 transition-colors">
+              <div className="text-3xl mb-2">{categoryIcons[category.value] || '📦'}</div>
               <h3 className="font-medium text-gray-800 mb-1">{category.name}</h3>
-              <p className="text-sm text-gray-500">{category.count} products</p>
-            </Link>
+            </div>
           ))}
         </div>
       </div>
@@ -91,7 +85,7 @@ export const CategoriesScreen = () => {
         <div className="grid grid-cols-2 gap-4">
           {products.slice(0, 4).map(product => (
             <div key={product.id} className="bg-white border rounded-lg p-3">
-              <img src={product.image} alt={product.name} className="w-full h-32 bg-gray-200 rounded-lg mb-2" />
+              <img src={product.image_link} alt={product.name} className="w-full h-32 bg-gray-200 rounded-lg mb-2 object-cover" />
               <h4 className="font-medium text-sm mb-1">{product.name}</h4>
               <p className="text-lg font-bold">${product.price}</p>
             </div>

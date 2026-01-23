@@ -1,20 +1,12 @@
+import type { ProductFormData } from "../types";
 import { ArrowLeft, Grid3X3, Heart, Home, Search, Filter, Plus, User, X, Image } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useProducts } from "../hooks/useProducts";
-
-interface ProductFormData {
-  name: string;
-  description: string;
-  price: number;
-  availableStocks: number;
-  isNegotiable: boolean;
-  imageLink: string;
-  companyId: number | null;
-}
+import { useCreateProductMutation, useGetProductsQuery, useGetCategoriesQuery } from "../apollo/generated/graphql";
 
 export const ProductsScreen = () => {
-  const { products, loading, error, fetchProducts } = useProducts();
+  const { data: productsData, loading, error } = useGetProductsQuery();
+  const { data: categoriesData } = useGetCategoriesQuery();
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
@@ -35,16 +27,15 @@ export const ProductsScreen = () => {
     isNegotiable: false,
     imageLink: '',
     companyId: null,
+    category: '',
   });
   const [createError, setCreateError] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const navigate = useNavigate();
+  const [createProduct] = useCreateProductMutation();
+  const categories = categoriesData?.categories || [];
 
-  useEffect(() => {
-    fetchProducts(filters);
-  }, [fetchProducts, filters]);
-
-  useEffect(() => {
+   useEffect(() => {
     const handleScroll = () => {
       const scrollY = window.scrollY;
       setShowFab(scrollY > 200); // Show FAB after scrolling 200px
@@ -53,6 +44,22 @@ export const ProductsScreen = () => {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  if (loading) {
+    return <div className="grid grid-cols-2 gap-4">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="bg-white border rounded-lg p-3">
+                <div className="w-full h-32 bg-gray-200 rounded-lg mb-2 animate-pulse"></div>
+                <div className="h-4 bg-gray-200 rounded mb-1 animate-pulse"></div>
+                <div className="h-3 bg-gray-200 rounded w-3/4 animate-pulse"></div>
+              </div>
+            ))}
+          </div>
+  }
+
+  if (error) {
+    return <div className="flex items-center justify-center h-screen text-red-600">Error: {error.message}</div>;
+  }
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,68 +87,20 @@ export const ProductsScreen = () => {
     setIsCreating(true);
 
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        throw new Error('Authentication required');
-      }
-
-      const response = await fetch('http://localhost:8080/query', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          query: `
-            mutation CreateProduct($input: CreateProductInput!) {
-              createProduct(input: $input) {
-                id
-                name
-                description
-                price
-                image_link
-                available_stocks
-                is_negotiable
-                owner_id
-                company_id
-                likes
-                sold
-              }
-            }
-          `,
-          variables: {
-            input: {
-              name: formData.name,
-              description: formData.description,
-              price: formData.price,
-              image_link: formData.imageLink || 'https://via.placeholder.com/300x300',
-              available_stocks: formData.availableStocks,
-              is_negotiable: formData.isNegotiable,
-              company_id: formData.companyId,
-              owner_id: '6'
-            }
-          }
-        })
-      });
-
-      const result = await response.json();
-
-      if (result.errors) {
-        throw new Error(result.errors[0].message);
-      }
-
-      setShowCreateModal(false);
-      setFormData({
-        name: '',
-        description: '',
-        price: 0,
-        availableStocks: 0,
-        isNegotiable: false,
-        imageLink: '',
-        companyId: null,
-      });
-      
-      fetchProducts(filters);
+      createProduct({ variables: { input: {
+        name: formData.name,
+        description: formData.description,
+        price: formData.price,
+        image_link: formData.imageLink || 'https://via.placeholder.com/300x300',
+        available_stocks: formData.availableStocks,
+        is_negotiable: formData.isNegotiable,
+        company_id: formData.companyId,
+        owner_id: 6, // Temporary static owner_id for testing
+        category: formData.category,
+      }}})
+      // Product created successfully
+      navigate('/products');
+      setShowCreateModal(false)
     } catch (err) {
       setCreateError(err instanceof Error ? err.message : 'Failed to create product');
     } finally {
@@ -265,17 +224,7 @@ export const ProductsScreen = () => {
           </div>
         )}
 
-        {loading ? (
-          <div className="grid grid-cols-2 gap-4">
-            {[...Array(6)].map((_, i) => (
-              <div key={i} className="bg-white border rounded-lg p-3">
-                <div className="w-full h-32 bg-gray-200 rounded-lg mb-2 animate-pulse"></div>
-                <div className="h-4 bg-gray-200 rounded mb-1 animate-pulse"></div>
-                <div className="h-3 bg-gray-200 rounded w-3/4 animate-pulse"></div>
-              </div>
-            ))}
-          </div>
-        ) : products.length === 0 ? (
+        {(productsData?.getProducts ?? [])?.length === 0 ? (
           <div className="text-center py-12">
             <div className="text-gray-400 mb-4">
               <Grid3X3 className="w-12 h-12 mx-auto" />
@@ -292,18 +241,18 @@ export const ProductsScreen = () => {
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-4">
-            {products.map((product) => (
+            {(productsData?.getProducts ?? []).map((product: any) => (
               <Link
                 key={product.id}
                 to={`/products/${product.id}`}
                 className="bg-white border rounded-lg p-3 text-left hover:shadow-md transition-shadow"
               >
                 <img 
-                  src={product.image_link} 
+                  src={product.image_link || 'https://picsum.photos/200/300'} 
                   alt={product.name} 
                   className="w-full h-32 bg-gray-200 rounded-lg mb-2 object-cover"
                   onError={(e) => {
-                    e.currentTarget.src = 'https://via.placeholder.com/150x150';
+                    e.currentTarget.src = 'https://picsum.photos/200/300';
                   }}
                 />
                 <h3 className="font-medium text-sm mb-1 line-clamp-1">{product.name}</h3>
@@ -465,6 +414,23 @@ export const ProductsScreen = () => {
                   <label htmlFor="isNegotiable" className="text-sm font-medium text-gray-700">
                     Price is negotiable
                   </label>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Category *
+                  </label>
+                  <select
+                    value={formData.category}
+                    onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Select a category</option>
+                    {categories.map(cat => (
+                      <option key={cat.id} value={cat.value}>{cat.name}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
 

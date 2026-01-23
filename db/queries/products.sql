@@ -1,12 +1,13 @@
 -- name: GetProducts :many
-SELECT * FROM products;
+SELECT * FROM products
+WHERE ($1::text IS NULL OR category = $1);
 
 -- name: GetProduct :one
 SELECT * FROM products WHERE id = $1 LIMIT 1;
 
 -- name: CreateProduct :one
-INSERT INTO products (name, description, price, created_at, updated_at, owner_id, company_id, image_link, available_stocks, is_negotiable)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+INSERT INTO products (name, description, price, created_at, updated_at, owner_id, company_id, image_link, available_stocks, is_negotiable, category)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 RETURNING *;
 
 -- name: SearchProducts :many
@@ -25,7 +26,8 @@ SET
     available_stocks = coalesce(sqlc.narg('available_stocks'), available_stocks),
     is_negotiable = coalesce(sqlc.narg('is_negotiable'), is_negotiable),
     company_id = coalesce(sqlc.narg('company_id'), company_id),
-    sold = coalesce(sqlc.narg('sold'), sold)
+    sold = coalesce(sqlc.narg('sold'), sold),
+    category = coalesce(sqlc.narg('category'), category)
 WHERE id = sqlc.arg('id')
 RETURNING *;
 

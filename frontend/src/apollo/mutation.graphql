@@ -11,5 +11,6 @@ mutation CreateProduct($input: CreateProductInput!) {
     company_id
     likes
     sold
+    category
     }
 }

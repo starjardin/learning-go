@@ -12,11 +12,18 @@ type Product {
 	company_id: Int
 	likes: Int!
 	sold: Boolean!
+	category: String!
 }
 
 type Company {
   id: ID!
   name: String!
+}
+
+type Category {
+  id: ID!
+  name: String!
+  value: String!
 }
 
 type User {
@@ -41,7 +48,8 @@ type Query {
   listUsers: [User!]!
   getCompanies: [Company!]!
   getCompany(id: ID!): Company
-  getProducts: [Product!]!
+  categories: [Category!]!
+  getProducts(category: String): [Product!]!
   getProduct(id: ID!): Product
   getProductsAdvanced(
     search: String
@@ -123,6 +131,7 @@ input UpdateProductInput {
 	price: Int
 	is_negotiable: Boolean
 	sold: Boolean
+	category: String
 }
 
 input CreateProductInput {
@@ -134,4 +143,5 @@ input CreateProductInput {
 	is_negotiable: Boolean!
 	owner_id: Int!
 	company_id: Int
+	category: String!
 }

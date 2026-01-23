@@ -49,6 +49,8 @@ func authMiddleware(tokenMaker token.Maker, queries *db.Queries) func(http.Handl
 				// Add token maker and queries to context for GraphQL resolvers
 				ctx := context.WithValue(r.Context(), "tokenMaker", tokenMaker)
 				ctx = context.WithValue(ctx, "queries", queries)
+				// Pass Authorization header to context for resolvers
+				ctx = context.WithValue(ctx, "Authorization", r.Header.Get("Authorization"))
 				r = r.WithContext(ctx)
 			}
 			next.ServeHTTP(w, r)

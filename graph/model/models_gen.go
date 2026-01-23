@@ -8,6 +8,12 @@ type AuthResponse struct {
 	RefreshToken string `json:"refreshToken"`
 }
 
+type Category struct {
+	ID    string `json:"id"`
+	Name  string `json:"name"`
+	Value string `json:"value"`
+}
+
 type Company struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
@@ -22,6 +28,7 @@ type CreateProductInput struct {
 	IsNegotiable    bool   `json:"is_negotiable"`
 	OwnerID         int    `json:"owner_id"`
 	CompanyID       *int   `json:"company_id,omitempty"`
+	Category        string `json:"category"`
 }
 
 type Mutation struct {
@@ -39,6 +46,7 @@ type Product struct {
 	CompanyID       *int   `json:"company_id,omitempty"`
 	Likes           int    `json:"likes"`
 	Sold            bool   `json:"sold"`
+	Category        string `json:"category"`
 }
 
 type Query struct {
@@ -52,6 +60,7 @@ type UpdateProductInput struct {
 	Price           *int    `json:"price,omitempty"`
 	IsNegotiable    *bool   `json:"is_negotiable,omitempty"`
 	Sold            *bool   `json:"sold,omitempty"`
+	Category        *string `json:"category,omitempty"`
 }
 
 type UpdateUserInput struct {

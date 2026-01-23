@@ -52,6 +52,12 @@ type ComplexityRoot struct {
 		User         func(childComplexity int) int
 	}
 
+	Category struct {
+		ID    func(childComplexity int) int
+		Name  func(childComplexity int) int
+		Value func(childComplexity int) int
+	}
+
 	Company struct {
 		ID   func(childComplexity int) int
 		Name func(childComplexity int) int
@@ -73,6 +79,7 @@ type ComplexityRoot struct {
 
 	Product struct {
 		AvailableStocks func(childComplexity int) int
+		Category        func(childComplexity int) int
 		CompanyID       func(childComplexity int) int
 		Description     func(childComplexity int) int
 		ID              func(childComplexity int) int
@@ -86,11 +93,12 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
+		Categories          func(childComplexity int) int
 		GetCompanies        func(childComplexity int) int
 		GetCompany          func(childComplexity int, id string) int
 		GetProduct          func(childComplexity int, id string) int
 		GetProductCount     func(childComplexity int, search *string, minPrice *int, maxPrice *int, minStock *int, sold *bool, companyID *int) int
-		GetProducts         func(childComplexity int) int
+		GetProducts         func(childComplexity int, category *string) int
 		GetProductsAdvanced func(childComplexity int, search *string, minPrice *int, maxPrice *int, minStock *int, sold *bool, companyID *int, sortBy *string, limit *int, offset *int) int
 		GetProductsByOwner  func(childComplexity int, ownerID string) int
 		GetUser             func(childComplexity int, id string) int
@@ -127,7 +135,8 @@ type QueryResolver interface {
 	ListUsers(ctx context.Context) ([]*model.User, error)
 	GetCompanies(ctx context.Context) ([]*model.Company, error)
 	GetCompany(ctx context.Context, id string) (*model.Company, error)
-	GetProducts(ctx context.Context) ([]*model.Product, error)
+	Categories(ctx context.Context) ([]*model.Category, error)
+	GetProducts(ctx context.Context, category *string) ([]*model.Product, error)
 	GetProduct(ctx context.Context, id string) (*model.Product, error)
 	GetProductsAdvanced(ctx context.Context, search *string, minPrice *int, maxPrice *int, minStock *int, sold *bool, companyID *int, sortBy *string, limit *int, offset *int) ([]*model.Product, error)
 	GetProductsByOwner(ctx context.Context, ownerID string) ([]*model.Product, error)
@@ -171,6 +180,25 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.AuthResponse.User(childComplexity), true
+
+	case "Category.id":
+		if e.complexity.Category.ID == nil {
+			break
+		}
+
+		return e.complexity.Category.ID(childComplexity), true
+	case "Category.name":
+		if e.complexity.Category.Name == nil {
+			break
+		}
+
+		return e.complexity.Category.Name(childComplexity), true
+	case "Category.value":
+		if e.complexity.Category.Value == nil {
+			break
+		}
+
+		return e.complexity.Category.Value(childComplexity), true
 
 	case "Company.id":
 		if e.complexity.Company.ID == nil {
@@ -313,6 +341,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Product.AvailableStocks(childComplexity), true
+	case "Product.category":
+		if e.complexity.Product.Category == nil {
+			break
+		}
+
+		return e.complexity.Product.Category(childComplexity), true
 	case "Product.company_id":
 		if e.complexity.Product.CompanyID == nil {
 			break
@@ -374,6 +408,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Product.Sold(childComplexity), true
 
+	case "Query.categories":
+		if e.complexity.Query.Categories == nil {
+			break
+		}
+
+		return e.complexity.Query.Categories(childComplexity), true
 	case "Query.getCompanies":
 		if e.complexity.Query.GetCompanies == nil {
 			break
@@ -418,7 +458,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			break
 		}
 
-		return e.complexity.Query.GetProducts(childComplexity), true
+		args, err := ec.field_Query_getProducts_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.GetProducts(childComplexity, args["category"].(*string)), true
 	case "Query.getProductsAdvanced":
 		if e.complexity.Query.GetProductsAdvanced == nil {
 			break
@@ -631,11 +676,18 @@ type Product {
 	company_id: Int
 	likes: Int!
 	sold: Boolean!
+	category: String!
 }
 
 type Company {
   id: ID!
   name: String!
+}
+
+type Category {
+  id: ID!
+  name: String!
+  value: String!
 }
 
 type User {
@@ -660,7 +712,8 @@ type Query {
   listUsers: [User!]!
   getCompanies: [Company!]!
   getCompany(id: ID!): Company
-  getProducts: [Product!]!
+  categories: [Category!]!
+  getProducts(category: String): [Product!]!
   getProduct(id: ID!): Product
   getProductsAdvanced(
     search: String
@@ -742,6 +795,7 @@ input UpdateProductInput {
 	price: Int
 	is_negotiable: Boolean
 	sold: Boolean
+	category: String
 }
 
 input CreateProductInput {
@@ -753,6 +807,7 @@ input CreateProductInput {
 	is_negotiable: Boolean!
 	owner_id: Int!
 	company_id: Int
+	category: String!
 }
 `, BuiltIn: false},
 }
@@ -1034,6 +1089,17 @@ func (ec *executionContext) field_Query_getProductsByOwner_args(ctx context.Cont
 	return args, nil
 }
 
+func (ec *executionContext) field_Query_getProducts_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "category", ec.unmarshalOString2ᚖstring)
+	if err != nil {
+		return nil, err
+	}
+	args["category"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Query_getUser_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -1192,6 +1258,93 @@ func (ec *executionContext) _AuthResponse_refreshToken(ctx context.Context, fiel
 func (ec *executionContext) fieldContext_AuthResponse_refreshToken(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "AuthResponse",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Category_id(ctx context.Context, field graphql.CollectedField, obj *model.Category) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Category_id,
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		ec.marshalNID2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Category_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Category",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Category_name(ctx context.Context, field graphql.CollectedField, obj *model.Category) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Category_name,
+		func(ctx context.Context) (any, error) {
+			return obj.Name, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Category_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Category",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Category_value(ctx context.Context, field graphql.CollectedField, obj *model.Category) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Category_value,
+		func(ctx context.Context) (any, error) {
+			return obj.Value, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Category_value(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Category",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -1550,6 +1703,8 @@ func (ec *executionContext) fieldContext_Mutation_createProduct(ctx context.Cont
 				return ec.fieldContext_Product_likes(ctx, field)
 			case "sold":
 				return ec.fieldContext_Product_sold(ctx, field)
+			case "category":
+				return ec.fieldContext_Product_category(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Product", field.Name)
 		},
@@ -1615,6 +1770,8 @@ func (ec *executionContext) fieldContext_Mutation_updateProduct(ctx context.Cont
 				return ec.fieldContext_Product_likes(ctx, field)
 			case "sold":
 				return ec.fieldContext_Product_sold(ctx, field)
+			case "category":
+				return ec.fieldContext_Product_category(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Product", field.Name)
 		},
@@ -2132,6 +2289,35 @@ func (ec *executionContext) fieldContext_Product_sold(_ context.Context, field g
 	return fc, nil
 }
 
+func (ec *executionContext) _Product_category(ctx context.Context, field graphql.CollectedField, obj *model.Product) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Product_category,
+		func(ctx context.Context) (any, error) {
+			return obj.Category, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Product_category(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Product",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query_getUser(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -2320,6 +2506,43 @@ func (ec *executionContext) fieldContext_Query_getCompany(ctx context.Context, f
 	return fc, nil
 }
 
+func (ec *executionContext) _Query_categories(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_categories,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.Query().Categories(ctx)
+		},
+		nil,
+		ec.marshalNCategory2ᚕᚖgithubᚗcomᚋstarjardinᚋonjaᚑproductsᚋgraphᚋmodelᚐCategoryᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_categories(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Category_id(ctx, field)
+			case "name":
+				return ec.fieldContext_Category_name(ctx, field)
+			case "value":
+				return ec.fieldContext_Category_value(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Category", field.Name)
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query_getProducts(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -2327,7 +2550,8 @@ func (ec *executionContext) _Query_getProducts(ctx context.Context, field graphq
 		field,
 		ec.fieldContext_Query_getProducts,
 		func(ctx context.Context) (any, error) {
-			return ec.resolvers.Query().GetProducts(ctx)
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().GetProducts(ctx, fc.Args["category"].(*string))
 		},
 		nil,
 		ec.marshalNProduct2ᚕᚖgithubᚗcomᚋstarjardinᚋonjaᚑproductsᚋgraphᚋmodelᚐProductᚄ,
@@ -2336,7 +2560,7 @@ func (ec *executionContext) _Query_getProducts(ctx context.Context, field graphq
 	)
 }
 
-func (ec *executionContext) fieldContext_Query_getProducts(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Query_getProducts(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
 		Field:      field,
@@ -2366,9 +2590,22 @@ func (ec *executionContext) fieldContext_Query_getProducts(_ context.Context, fi
 				return ec.fieldContext_Product_likes(ctx, field)
 			case "sold":
 				return ec.fieldContext_Product_sold(ctx, field)
+			case "category":
+				return ec.fieldContext_Product_category(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Product", field.Name)
 		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_getProducts_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
 	}
 	return fc, nil
 }
@@ -2420,6 +2657,8 @@ func (ec *executionContext) fieldContext_Query_getProduct(ctx context.Context, f
 				return ec.fieldContext_Product_likes(ctx, field)
 			case "sold":
 				return ec.fieldContext_Product_sold(ctx, field)
+			case "category":
+				return ec.fieldContext_Product_category(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Product", field.Name)
 		},
@@ -2485,6 +2724,8 @@ func (ec *executionContext) fieldContext_Query_getProductsAdvanced(ctx context.C
 				return ec.fieldContext_Product_likes(ctx, field)
 			case "sold":
 				return ec.fieldContext_Product_sold(ctx, field)
+			case "category":
+				return ec.fieldContext_Product_category(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Product", field.Name)
 		},
@@ -2550,6 +2791,8 @@ func (ec *executionContext) fieldContext_Query_getProductsByOwner(ctx context.Co
 				return ec.fieldContext_Product_likes(ctx, field)
 			case "sold":
 				return ec.fieldContext_Product_sold(ctx, field)
+			case "category":
+				return ec.fieldContext_Product_category(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Product", field.Name)
 		},
@@ -4402,7 +4645,7 @@ func (ec *executionContext) unmarshalInputCreateProductInput(ctx context.Context
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"name", "image_link", "description", "available_stocks", "price", "is_negotiable", "owner_id", "company_id"}
+	fieldsInOrder := [...]string{"name", "image_link", "description", "available_stocks", "price", "is_negotiable", "owner_id", "company_id", "category"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -4465,6 +4708,13 @@ func (ec *executionContext) unmarshalInputCreateProductInput(ctx context.Context
 				return it, err
 			}
 			it.CompanyID = data
+		case "category":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("category"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Category = data
 		}
 	}
 
@@ -4478,7 +4728,7 @@ func (ec *executionContext) unmarshalInputUpdateProductInput(ctx context.Context
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"name", "image_link", "description", "available_stocks", "price", "is_negotiable", "sold"}
+	fieldsInOrder := [...]string{"name", "image_link", "description", "available_stocks", "price", "is_negotiable", "sold", "category"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -4534,6 +4784,13 @@ func (ec *executionContext) unmarshalInputUpdateProductInput(ctx context.Context
 				return it, err
 			}
 			it.Sold = data
+		case "category":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("category"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Category = data
 		}
 	}
 
@@ -4723,6 +4980,55 @@ func (ec *executionContext) _AuthResponse(ctx context.Context, sel ast.Selection
 			}
 		case "refreshToken":
 			out.Values[i] = ec._AuthResponse_refreshToken(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var categoryImplementors = []string{"Category"}
+
+func (ec *executionContext) _Category(ctx context.Context, sel ast.SelectionSet, obj *model.Category) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, categoryImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Category")
+		case "id":
+			out.Values[i] = ec._Category_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "name":
+			out.Values[i] = ec._Category_name(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "value":
+			out.Values[i] = ec._Category_value(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -4975,6 +5281,11 @@ func (ec *executionContext) _Product(ctx context.Context, sel ast.SelectionSet, 
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "category":
+			out.Values[i] = ec._Product_category(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -5090,6 +5401,28 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_getCompany(ctx, field)
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "categories":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_categories(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
 				return res
 			}
 
@@ -5671,6 +6004,60 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) marshalNCategory2ᚕᚖgithubᚗcomᚋstarjardinᚋonjaᚑproductsᚋgraphᚋmodelᚐCategoryᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Category) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNCategory2ᚖgithubᚗcomᚋstarjardinᚋonjaᚑproductsᚋgraphᚋmodelᚐCategory(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNCategory2ᚖgithubᚗcomᚋstarjardinᚋonjaᚑproductsᚋgraphᚋmodelᚐCategory(ctx context.Context, sel ast.SelectionSet, v *model.Category) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._Category(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNCompany2githubᚗcomᚋstarjardinᚋonjaᚑproductsᚋgraphᚋmodelᚐCompany(ctx context.Context, sel ast.SelectionSet, v model.Company) graphql.Marshaler {

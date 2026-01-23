@@ -12,9 +12,9 @@ import (
 )
 
 const createProduct = `-- name: CreateProduct :one
-INSERT INTO products (name, description, price, created_at, updated_at, owner_id, company_id, image_link, available_stocks, is_negotiable)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-RETURNING id, name, image_link, description, available_stocks, price, is_negotiable, owner_id, company_id, likes, sold, created_at, updated_at
+INSERT INTO products (name, description, price, created_at, updated_at, owner_id, company_id, image_link, available_stocks, is_negotiable, category)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+RETURNING id, name, image_link, description, available_stocks, price, is_negotiable, owner_id, company_id, likes, sold, created_at, updated_at, category
 `
 
 type CreateProductParams struct {
@@ -28,6 +28,7 @@ type CreateProductParams struct {
 	ImageLink       string             `db:"image_link" json:"image_link"`
 	AvailableStocks int32              `db:"available_stocks" json:"available_stocks"`
 	IsNegotiable    bool               `db:"is_negotiable" json:"is_negotiable"`
+	Category        string             `db:"category" json:"category"`
 }
 
 func (q *Queries) CreateProduct(ctx context.Context, arg CreateProductParams) (Product, error) {
@@ -42,6 +43,7 @@ func (q *Queries) CreateProduct(ctx context.Context, arg CreateProductParams) (P
 		arg.ImageLink,
 		arg.AvailableStocks,
 		arg.IsNegotiable,
+		arg.Category,
 	)
 	var i Product
 	err := row.Scan(
@@ -58,12 +60,13 @@ func (q *Queries) CreateProduct(ctx context.Context, arg CreateProductParams) (P
 		&i.Sold,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Category,
 	)
 	return i, err
 }
 
 const deleteProduct = `-- name: DeleteProduct :one
-DELETE FROM products WHERE id = $1 RETURNING id, name, image_link, description, available_stocks, price, is_negotiable, owner_id, company_id, likes, sold, created_at, updated_at
+DELETE FROM products WHERE id = $1 RETURNING id, name, image_link, description, available_stocks, price, is_negotiable, owner_id, company_id, likes, sold, created_at, updated_at, category
 `
 
 func (q *Queries) DeleteProduct(ctx context.Context, id int32) (Product, error) {
@@ -83,12 +86,13 @@ func (q *Queries) DeleteProduct(ctx context.Context, id int32) (Product, error) 
 		&i.Sold,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Category,
 	)
 	return i, err
 }
 
 const getProduct = `-- name: GetProduct :one
-SELECT id, name, image_link, description, available_stocks, price, is_negotiable, owner_id, company_id, likes, sold, created_at, updated_at FROM products WHERE id = $1 LIMIT 1
+SELECT id, name, image_link, description, available_stocks, price, is_negotiable, owner_id, company_id, likes, sold, created_at, updated_at, category FROM products WHERE id = $1 LIMIT 1
 `
 
 func (q *Queries) GetProduct(ctx context.Context, id int32) (Product, error) {
@@ -108,6 +112,7 @@ func (q *Queries) GetProduct(ctx context.Context, id int32) (Product, error) {
 		&i.Sold,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Category,
 	)
 	return i, err
 }
@@ -147,11 +152,12 @@ func (q *Queries) GetProductCount(ctx context.Context, arg GetProductCountParams
 }
 
 const getProducts = `-- name: GetProducts :many
-SELECT id, name, image_link, description, available_stocks, price, is_negotiable, owner_id, company_id, likes, sold, created_at, updated_at FROM products
+SELECT id, name, image_link, description, available_stocks, price, is_negotiable, owner_id, company_id, likes, sold, created_at, updated_at, category FROM products
+WHERE ($1::text IS NULL OR category = $1)
 `
 
-func (q *Queries) GetProducts(ctx context.Context) ([]Product, error) {
-	rows, err := q.db.Query(ctx, getProducts)
+func (q *Queries) GetProducts(ctx context.Context, dollar_1 string) ([]Product, error) {
+	rows, err := q.db.Query(ctx, getProducts, dollar_1)
 	if err != nil {
 		return nil, err
 	}
@@ -173,6 +179,7 @@ func (q *Queries) GetProducts(ctx context.Context) ([]Product, error) {
 			&i.Sold,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Category,
 		); err != nil {
 			return nil, err
 		}
@@ -185,7 +192,7 @@ func (q *Queries) GetProducts(ctx context.Context) ([]Product, error) {
 }
 
 const getProductsAdvanced = `-- name: GetProductsAdvanced :many
-SELECT id, name, image_link, description, available_stocks, price, is_negotiable, owner_id, company_id, likes, sold, created_at, updated_at FROM products 
+SELECT id, name, image_link, description, available_stocks, price, is_negotiable, owner_id, company_id, likes, sold, created_at, updated_at, category FROM products 
 WHERE 
   ($1::text IS NULL OR name ILIKE '%' || $1 || '%')
   AND ($2::int4 IS NULL OR price >= $2)
@@ -247,6 +254,7 @@ func (q *Queries) GetProductsAdvanced(ctx context.Context, arg GetProductsAdvanc
 			&i.Sold,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Category,
 		); err != nil {
 			return nil, err
 		}
@@ -259,7 +267,7 @@ func (q *Queries) GetProductsAdvanced(ctx context.Context, arg GetProductsAdvanc
 }
 
 const getProductsByOwner = `-- name: GetProductsByOwner :many
-SELECT id, name, image_link, description, available_stocks, price, is_negotiable, owner_id, company_id, likes, sold, created_at, updated_at FROM products 
+SELECT id, name, image_link, description, available_stocks, price, is_negotiable, owner_id, company_id, likes, sold, created_at, updated_at, category FROM products 
 WHERE owner_id = $1
 ORDER BY created_at DESC
 `
@@ -287,6 +295,7 @@ func (q *Queries) GetProductsByOwner(ctx context.Context, ownerID int32) ([]Prod
 			&i.Sold,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Category,
 		); err != nil {
 			return nil, err
 		}
@@ -299,7 +308,7 @@ func (q *Queries) GetProductsByOwner(ctx context.Context, ownerID int32) ([]Prod
 }
 
 const searchProducts = `-- name: SearchProducts :many
-SELECT id, name, image_link, description, available_stocks, price, is_negotiable, owner_id, company_id, likes, sold, created_at, updated_at FROM products
+SELECT id, name, image_link, description, available_stocks, price, is_negotiable, owner_id, company_id, likes, sold, created_at, updated_at, category FROM products
 WHERE name ILIKE '%' || $1 || '%'
 OR description ILIKE '%' || $1 || '%'
 ORDER BY id
@@ -328,6 +337,7 @@ func (q *Queries) SearchProducts(ctx context.Context, dollar_1 pgtype.Text) ([]P
 			&i.Sold,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Category,
 		); err != nil {
 			return nil, err
 		}
@@ -349,9 +359,10 @@ SET
     available_stocks = coalesce($5, available_stocks),
     is_negotiable = coalesce($6, is_negotiable),
     company_id = coalesce($7, company_id),
-    sold = coalesce($8, sold)
-WHERE id = $9
-RETURNING id, name, image_link, description, available_stocks, price, is_negotiable, owner_id, company_id, likes, sold, created_at, updated_at
+    sold = coalesce($8, sold),
+    category = coalesce($9, category)
+WHERE id = $10
+RETURNING id, name, image_link, description, available_stocks, price, is_negotiable, owner_id, company_id, likes, sold, created_at, updated_at, category
 `
 
 type UpdateProductParams struct {
@@ -363,6 +374,7 @@ type UpdateProductParams struct {
 	IsNegotiable    pgtype.Bool `db:"is_negotiable" json:"is_negotiable"`
 	CompanyID       pgtype.Int4 `db:"company_id" json:"company_id"`
 	Sold            pgtype.Bool `db:"sold" json:"sold"`
+	Category        pgtype.Text `db:"category" json:"category"`
 	ID              int32       `db:"id" json:"id"`
 }
 
@@ -376,6 +388,7 @@ func (q *Queries) UpdateProduct(ctx context.Context, arg UpdateProductParams) (P
 		arg.IsNegotiable,
 		arg.CompanyID,
 		arg.Sold,
+		arg.Category,
 		arg.ID,
 	)
 	var i Product
@@ -393,6 +406,7 @@ func (q *Queries) UpdateProduct(ctx context.Context, arg UpdateProductParams) (P
 		&i.Sold,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Category,
 	)
 	return i, err
 }

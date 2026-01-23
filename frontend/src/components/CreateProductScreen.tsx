@@ -1,23 +1,17 @@
+import type { ProductFormData } from '../types';
+
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Plus, X, Image } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-
-interface ProductFormData {
-  name: string;
-  description: string;
-  price: number;
-  availableStocks: number;
-  isNegotiable: boolean;
-  imageLink: string;
-  companyId: number | null;
-}
+import { useCreateProductMutation, useGetCategoriesQuery } from '../apollo/generated/graphql';
 
 export const CreateProductScreen = () => {
-  const { user, isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+    const { data: categoriesData } = useGetCategoriesQuery();
   const [formData, setFormData] = useState<ProductFormData>({
     name: '',
     description: '',
@@ -26,7 +20,12 @@ export const CreateProductScreen = () => {
     isNegotiable: false,
     imageLink: '',
     companyId: null,
+    category: '',
   });
+
+  const [createProduct] = useCreateProductMutation();
+
+  const categories = categoriesData?.categories || [];
 
   // Redirect if not authenticated
   React.useEffect(() => {
@@ -51,56 +50,17 @@ export const CreateProductScreen = () => {
     setError(null);
 
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        throw new Error('Authentication required');
-      }
-
-      const response = await fetch('http://localhost:8080/query', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          query: `
-            mutation CreateProduct($input: CreateProductInput!) {
-              createProduct(input: $input) {
-                id
-                name
-                description
-                price
-                image_link
-                available_stocks
-                is_negotiable
-                owner_id
-                company_id
-                likes
-                sold
-              }
-            }
-          `,
-          variables: {
-            input: {
-              name: formData.name,
-              description: formData.description,
-              price: formData.price,
-              image_link: formData.imageLink || 'https://via.placeholder.com/300x300',
-              available_stocks: formData.availableStocks,
-              is_negotiable: formData.isNegotiable,
-              company_id: formData.companyId,
-              owner_id: '6'
-            }
-          }
-        })
-      });
-
-      const result = await response.json();
-
-      if (result.errors) {
-        throw new Error(result.errors[0].message);
-      }
-
+      createProduct({ variables: { input: {
+        name: formData.name,
+        description: formData.description,
+        price: formData.price,
+        image_link: formData.imageLink || 'https://via.placeholder.com/300x300',
+        available_stocks: formData.availableStocks,
+        is_negotiable: formData.isNegotiable,
+        company_id: formData.companyId,
+        owner_id: 6, // Temporary static owner_id for testing
+        category: formData.category,
+      }}})
       // Product created successfully
       navigate('/products');
     } catch (err) {
@@ -221,6 +181,23 @@ export const CreateProductScreen = () => {
               />
             </div>
           </div>
+
+          <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Category *
+                  </label>
+                  <select
+                    value={formData.category}
+                    onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Select a category</option>
+                    {categories.map(cat => (
+                      <option key={cat.id} value={cat.value}>{cat.name}</option>
+                    ))}
+                  </select>
+                </div>
 
           {/* Negotiable */}
           <div className="flex items-center space-x-3">

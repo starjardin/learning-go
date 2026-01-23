@@ -3,7 +3,8 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
 
-import { ApolloClient, HttpLink, InMemoryCache } from "@apollo/client";
+import { ApolloClient, HttpLink, InMemoryCache, from } from "@apollo/client";
+import { setContext } from "@apollo/client/link/context";
 import { ApolloProvider } from "@apollo/client/react";
 
 import {
@@ -20,8 +21,20 @@ import { CategoriesScreen } from './components/CategoriesScreen.tsx';
 import { AuthProvider } from './contexts/AuthContext.tsx';
 import { CreateProductScreen } from './components/CreateProductScreen.tsx';
 
+const httpLink = new HttpLink({ uri: "http://localhost:8080/query" });
+
+const authLink = setContext((_, { headers }) => {
+  const token = localStorage.getItem('token');
+  return {
+    headers: {
+      ...headers,
+      authorization: token ? `Bearer ${token}` : "",
+    }
+  };
+});
+
 const client = new ApolloClient({
-  link: new HttpLink({ uri: "http://localhost:8080/graphql" }),
+  link: from([authLink, httpLink]),
   cache: new InMemoryCache(),
 });
 
@@ -40,14 +53,7 @@ const router = createBrowserRouter([
   {
     path: "/products/:id",
     element: <ProductDetailScreen />,
-    loader: async ({ params }) => {
-      requireAuthLoader();
-      const response = await fetch(`/api/products/${params.id}`);
-      if (!response.ok) {
-        throw new Response("Product not found", { status: 404 });
-      }
-      return response.json();
-    },
+    loader: requireAuthLoader,
     errorElement: <ErrorBoundary />
   },
   {

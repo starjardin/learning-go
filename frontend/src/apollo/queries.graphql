@@ -1,0 +1,42 @@
+query getProducts($category: String) {
+  getProducts(category: $category) {
+    id
+    sold
+    description
+    price
+    image_link
+    name
+    is_negotiable
+    owner_id
+    company_id
+    likes
+    sold
+    available_stocks
+    category
+  }
+}
+
+query getCategories {
+  categories {
+    id
+    name
+    value
+  }
+}
+
+query GetProduct($id: ID!) {
+  getProduct(id: $id) {
+    id
+    name
+    description
+    price
+    image_link
+    available_stocks
+    is_negotiable
+    owner_id
+    company_id
+    category
+    sold
+    likes
+  }
+}

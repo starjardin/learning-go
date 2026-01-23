@@ -10,6 +10,12 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type Category struct {
+	ID    int32  `db:"id" json:"id"`
+	Name  string `db:"name" json:"name"`
+	Value string `db:"value" json:"value"`
+}
+
 type Company struct {
 	ID        int32              `db:"id" json:"id"`
 	Name      string             `db:"name" json:"name"`
@@ -50,6 +56,7 @@ type Product struct {
 	Sold            bool               `db:"sold" json:"sold"`
 	CreatedAt       pgtype.Timestamptz `db:"created_at" json:"created_at"`
 	UpdatedAt       pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	Category        string             `db:"category" json:"category"`
 }
 
 type ProductLike struct {

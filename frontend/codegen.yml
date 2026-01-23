@@ -1,0 +1,15 @@
+schema: 
+  - http://localhost:8080/query:
+      headers:
+        Authorization: 'Bearer v2.local.TDImrdQarzouVhw5jfoFvTANlTT2OQj3yZEw9BuQQB6k8W4C95bFmvWa46e0JbxmmzSxpmKc5f1QvM1-hoM0sRI3bBovmH7SD3hrnw4FdcAi8ahjSs-9VkcIbMzbkjjPhOys2Zu4sBtny2d6D1aFQBAEZbnUHrufF9g2j2oMNk2MCCO69sRP766rI3nkoYina1KmJcCDdn8jrntcg96pqrhdcUKJGYSnORsMiA2eBSBkZAPwgls7Hw-LGFg6tElFF39ZL7RPD9iBRcBXw6tY5JI.bnVsbA'
+documents: 'src/**/*.graphql'
+generates:
+  src/apollo/generated/graphql.ts:
+    plugins:
+      - typescript
+      - typescript-operations
+      - typescript-react-apollo
+    config:
+      withHooks: true
+      withHOC: false
+      withComponent: false

@@ -213,25 +213,22 @@ func (r *mutationResolver) UpdateCompany(ctx context.Context, id string, name st
 
 // CreateProduct is the resolver for the createProduct field.
 func (r *mutationResolver) CreateProduct(ctx context.Context, input model.CreateProductInput) (*model.Product, error) {
-	// Extract token from Authorization header (if present)
 	authHeader := ctx.Value("Authorization")
+
 	if authHeader == nil {
 		authHeader = ""
 	}
 
-	// Extract and validate token
 	tokenStr, err := ExtractTokenFromHeader(authHeader.(string))
 	if err != nil {
 		return nil, fmt.Errorf("authentication required: %w", err)
 	}
 
-	// Validate token and get user info
 	authCtx, err := r.ValidateTokenAndGetUser(ctx, tokenStr)
 	if err != nil {
 		return nil, fmt.Errorf("authentication failed: %w", err)
 	}
 
-	// Override owner_id with authenticated user's ID
 	ownerID := int32(authCtx.UserID)
 
 	var companyID pgtype.Int4
@@ -251,6 +248,7 @@ func (r *mutationResolver) CreateProduct(ctx context.Context, input model.Create
 		ImageLink:       input.ImageLink,
 		AvailableStocks: int32(input.AvailableStocks),
 		IsNegotiable:    input.IsNegotiable,
+		Category:        input.Category,
 	}
 
 	product, err := r.Resolver.Queries.CreateProduct(ctx, params)
@@ -275,6 +273,7 @@ func (r *mutationResolver) CreateProduct(ctx context.Context, input model.Create
 		ImageLink:       product.ImageLink,
 		AvailableStocks: int(product.AvailableStocks),
 		IsNegotiable:    product.IsNegotiable,
+		Category:        product.Category,
 	}, nil
 }
 
@@ -313,6 +312,10 @@ func (r *mutationResolver) UpdateProduct(ctx context.Context, id string, input m
 		params.Price = pgtype.Int4{Valid: true, Int32: int32(*input.Price)}
 	}
 
+	if input.Category != nil {
+		params.Category = pgtype.Text{Valid: true, String: *input.Category}
+	}
+
 	product, err := r.Resolver.Queries.UpdateProduct(ctx, params)
 	if err != nil {
 		return nil, fmt.Errorf("failed to update product: %w", err)
@@ -333,6 +336,7 @@ func (r *mutationResolver) UpdateProduct(ctx context.Context, id string, input m
 		ImageLink:       product.ImageLink,
 		AvailableStocks: int(product.AvailableStocks),
 		IsNegotiable:    product.IsNegotiable,
+		Category:        product.Category,
 	}, nil
 }
 
@@ -515,9 +519,35 @@ func (r *queryResolver) GetCompany(ctx context.Context, id string) (*model.Compa
 	}, nil
 }
 
+// Categories is the resolver for the categories field.
+func (r *queryResolver) Categories(ctx context.Context) ([]*model.Category, error) {
+	categories, err := r.Resolver.Queries.GetCategories(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get categories: %w", err)
+	}
+
+	var result []*model.Category
+	for _, category := range categories {
+		result = append(result, &model.Category{
+			ID:    fmt.Sprintf("%d", category.ID),
+			Name:  category.Name,
+			Value: category.Value,
+		})
+	}
+
+	return result, nil
+}
+
 // GetProducts is the resolver for the getProducts field.
-func (r *queryResolver) GetProducts(ctx context.Context) ([]*model.Product, error) {
-	products, err := r.Resolver.Queries.GetProducts(ctx)
+func (r *queryResolver) GetProducts(ctx context.Context, category *string) ([]*model.Product, error) {
+	var categoryParam pgtype.Text
+	if category != nil {
+		categoryParam = pgtype.Text{String: *category, Valid: true}
+	} else {
+		categoryParam = pgtype.Text{Valid: false}
+	}
+
+	products, err := r.Resolver.Queries.GetProducts(ctx, categoryParam)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get products: %w", err)
 	}
@@ -538,6 +568,7 @@ func (r *queryResolver) GetProducts(ctx context.Context) ([]*model.Product, erro
 			ImageLink:       product.ImageLink,
 			AvailableStocks: int(product.AvailableStocks),
 			IsNegotiable:    product.IsNegotiable,
+			Category:        product.Category,
 		})
 	}
 
@@ -573,6 +604,7 @@ func (r *queryResolver) GetProduct(ctx context.Context, id string) (*model.Produ
 		ImageLink:       product.ImageLink,
 		AvailableStocks: int(product.AvailableStocks),
 		IsNegotiable:    product.IsNegotiable,
+		Category:        product.Category,
 	}, nil
 }
 
