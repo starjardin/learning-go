@@ -154,10 +154,25 @@ func (q *Queries) GetProductCount(ctx context.Context, arg GetProductCountParams
 const getProducts = `-- name: GetProducts :many
 SELECT id, name, image_link, description, available_stocks, price, is_negotiable, owner_id, company_id, likes, sold, created_at, updated_at, category FROM products
 WHERE ($1::text IS NULL OR category = $1)
+  AND ($2::bool IS NULL OR sold = $2)
+  AND ($3::bool IS NULL OR is_negotiable = $3)
+  AND ($4::text IS NULL OR $4::text = '' OR name ILIKE '%' || $4 || '%' OR description ILIKE '%' || $4 || '%')
 `
 
-func (q *Queries) GetProducts(ctx context.Context, dollar_1 string) ([]Product, error) {
-	rows, err := q.db.Query(ctx, getProducts, dollar_1)
+type GetProductsParams struct {
+	Category     pgtype.Text `db:"category" json:"category"`
+	Sold         pgtype.Bool `db:"sold" json:"sold"`
+	IsNegotiable pgtype.Bool `db:"is_negotiable" json:"is_negotiable"`
+	Search       pgtype.Text `db:"search" json:"search"`
+}
+
+func (q *Queries) GetProducts(ctx context.Context, arg GetProductsParams) ([]Product, error) {
+	rows, err := q.db.Query(ctx, getProducts,
+		arg.Category,
+		arg.Sold,
+		arg.IsNegotiable,
+		arg.Search,
+	)
 	if err != nil {
 		return nil, err
 	}

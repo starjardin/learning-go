@@ -11,6 +11,8 @@ import (
 )
 
 type Querier interface {
+	AddToCart(ctx context.Context, arg AddToCartParams) (CartItem, error)
+	ClearCart(ctx context.Context, userID int32) error
 	CreateCompany(ctx context.Context, name string) (Company, error)
 	CreateProduct(ctx context.Context, arg CreateProductParams) (Product, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
@@ -18,6 +20,9 @@ type Querier interface {
 	DeleteCompany(ctx context.Context, id int32) error
 	DeleteProduct(ctx context.Context, id int32) (Product, error)
 	DeleteUser(ctx context.Context, id int32) error
+	GetCartItem(ctx context.Context, arg GetCartItemParams) (CartItem, error)
+	GetCartItemCount(ctx context.Context, userID int32) (int32, error)
+	GetCartItems(ctx context.Context, userID int32) ([]GetCartItemsRow, error)
 	GetCategories(ctx context.Context) ([]Category, error)
 	GetCompanies(ctx context.Context) ([]Company, error)
 	GetCompaniesByNameOrId(ctx context.Context, name string) ([]Company, error)
@@ -27,14 +32,16 @@ type Querier interface {
 	GetCompanyByNameOrId(ctx context.Context, name string) (Company, error)
 	GetProduct(ctx context.Context, id int32) (Product, error)
 	GetProductCount(ctx context.Context, arg GetProductCountParams) (int64, error)
-	GetProducts(ctx context.Context, dollar_1 string) ([]Product, error)
+	GetProducts(ctx context.Context, arg GetProductsParams) ([]Product, error)
 	GetProductsAdvanced(ctx context.Context, arg GetProductsAdvancedParams) ([]Product, error)
 	GetProductsByOwner(ctx context.Context, ownerID int32) ([]Product, error)
 	GetUser(ctx context.Context, id int32) (User, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByUsername(ctx context.Context, username string) (User, error)
 	GetUsers(ctx context.Context) ([]User, error)
+	RemoveFromCart(ctx context.Context, arg RemoveFromCartParams) error
 	SearchProducts(ctx context.Context, dollar_1 pgtype.Text) ([]Product, error)
+	UpdateCartItemQuantity(ctx context.Context, arg UpdateCartItemQuantityParams) (CartItem, error)
 	UpdateCompany(ctx context.Context, arg UpdateCompanyParams) (Company, error)
 	UpdateProduct(ctx context.Context, arg UpdateProductParams) (Product, error)
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error)

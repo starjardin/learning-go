@@ -1,21 +1,38 @@
 import type { ProductFormData } from "../types";
-import { ArrowLeft, Grid3X3, Heart, Home, Search, Filter, Plus, User, X, Image } from "lucide-react";
+import { ArrowLeft, Grid3X3, Heart, Home, Search, Plus, User, X, Image } from "lucide-react";
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useCreateProductMutation, useGetProductsQuery, useGetCategoriesQuery } from "../apollo/generated/graphql";
 
 export const ProductsScreen = () => {
-  const { data: productsData, loading, error } = useGetProductsQuery();
   const { data: categoriesData } = useGetCategoriesQuery();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const categoryFromUrl = searchParams.get('category') || '';
+  
   const [searchQuery, setSearchQuery] = useState('');
-  const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
     search: '',
+    category: categoryFromUrl,
+    sold: null as boolean | null,
+    isNegotiable: null as boolean | null,
     minPrice: undefined as number | undefined,
     maxPrice: undefined as number | undefined,
     minStock: undefined as number | undefined,
-    sold: false,
     sortBy: 'created_desc' as string,
+  });
+
+  // Sync category filter with URL
+  useEffect(() => {
+    setFilters(prev => ({ ...prev, category: categoryFromUrl }));
+  }, [categoryFromUrl]);
+
+  const { data: productsData, loading, error } = useGetProductsQuery({
+    variables: {
+      search: filters.search || null,
+      category: filters.category || null,
+      sold: filters.sold,
+      isNegotiable: filters.isNegotiable,
+    },
   });
   const [showFab, setShowFab] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -68,18 +85,29 @@ export const ProductsScreen = () => {
 
   const handleFilterChange = (key: string, value: any) => {
     setFilters(prev => ({ ...prev, [key]: value }));
+    // Update URL when category changes
+    if (key === 'category') {
+      if (value) {
+        setSearchParams({ category: value });
+      } else {
+        setSearchParams({});
+      }
+    }
   };
 
   const clearFilters = () => {
     setFilters({
       search: '',
+      category: '',
+      sold: null,
+      isNegotiable: null,
       minPrice: undefined,
       maxPrice: undefined,
       minStock: undefined,
-      sold: false,
       sortBy: 'created_desc',
     });
     setSearchQuery('');
+    setSearchParams({});
   };
 
   const handleCreateProduct = async () => {
@@ -125,8 +153,8 @@ export const ProductsScreen = () => {
       </div>
 
       <div className="p-4 border-b">
-        <form onSubmit={handleSearch} className="flex space-x-2 mb-3">
-          <div className="flex-1 relative">
+        <form onSubmit={handleSearch} className="flex flex-wrap items-center gap-3">
+          <div className="flex-1 min-w-[200px] relative">
             <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
             <input
               type="text"
@@ -136,85 +164,101 @@ export const ProductsScreen = () => {
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
+
+          <select
+            value={filters.category}
+            onChange={(e) => handleFilterChange('category', e.target.value)}
+            className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">All Categories</option>
+            {categories.map(cat => (
+              <option key={cat.id} value={cat.value}>{cat.name}</option>
+            ))}
+          </select>
+
+          <div className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg bg-white">
+            <span className="text-sm text-gray-600">Sold:</span>
+            <label className="flex items-center gap-1 cursor-pointer">
+              <input
+                type="radio"
+                name="sold"
+                checked={filters.sold === null}
+                onChange={() => handleFilterChange('sold', null)}
+                className="w-4 h-4 text-blue-600"
+              />
+              <span className="text-sm">All</span>
+            </label>
+            <label className="flex items-center gap-1 cursor-pointer">
+              <input
+                type="radio"
+                name="sold"
+                checked={filters.sold === true}
+                onChange={() => handleFilterChange('sold', true)}
+                className="w-4 h-4 text-blue-600"
+              />
+              <span className="text-sm">Yes</span>
+            </label>
+            <label className="flex items-center gap-1 cursor-pointer">
+              <input
+                type="radio"
+                name="sold"
+                checked={filters.sold === false}
+                onChange={() => handleFilterChange('sold', false)}
+                className="w-4 h-4 text-blue-600"
+              />
+              <span className="text-sm">No</span>
+            </label>
+          </div>
+
+          <div className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg bg-white">
+            <span className="text-sm text-gray-600">Negotiable:</span>
+            <label className="flex items-center gap-1 cursor-pointer">
+              <input
+                type="radio"
+                name="isNegotiable"
+                checked={filters.isNegotiable === null}
+                onChange={() => handleFilterChange('isNegotiable', null)}
+                className="w-4 h-4 text-blue-600"
+              />
+              <span className="text-sm">All</span>
+            </label>
+            <label className="flex items-center gap-1 cursor-pointer">
+              <input
+                type="radio"
+                name="isNegotiable"
+                checked={filters.isNegotiable === true}
+                onChange={() => handleFilterChange('isNegotiable', true)}
+                className="w-4 h-4 text-blue-600"
+              />
+              <span className="text-sm">Yes</span>
+            </label>
+            <label className="flex items-center gap-1 cursor-pointer">
+              <input
+                type="radio"
+                name="isNegotiable"
+                checked={filters.isNegotiable === false}
+                onChange={() => handleFilterChange('isNegotiable', false)}
+                className="w-4 h-4 text-blue-600"
+              />
+              <span className="text-sm">No</span>
+            </label>
+          </div>
+
           <button
             type="submit"
             className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
           >
             Search
           </button>
-        </form>
-
-        <div className="flex items-center justify-between">
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className="flex items-center space-x-2 text-gray-600 hover:text-gray-900"
-          >
-            <Filter className="w-4 h-4" />
-            <span>Filters</span>
-            {(filters.minPrice !== undefined || filters.maxPrice !== undefined || filters.minStock !== undefined) && (
-              <span className="bg-blue-600 text-white text-xs px-2 py-1 rounded-full">Active</span>
-            )}
-          </button>
 
           <button
+            type="button"
             onClick={clearFilters}
-            className="text-gray-600 hover:text-gray-900 text-sm"
+            className="text-gray-600 hover:text-gray-900 text-sm px-3 py-2"
           >
-            Clear All
+            Clear
           </button>
-        </div>
-
-        {showFilters && (
-          <div className="mt-4 p-4 bg-gray-50 rounded-lg space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Min Price ($)</label>
-                <input
-                  type="number"
-                  placeholder="0"
-                  value={filters.minPrice || ''}
-                  onChange={(e) => handleFilterChange('minPrice', e.target.value ? Number(e.target.value) : undefined)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Max Price ($)</label>
-                <input
-                  type="number"
-                  placeholder="1000"
-                  value={filters.maxPrice || ''}
-                  onChange={(e) => handleFilterChange('maxPrice', e.target.value ? Number(e.target.value) : undefined)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Min Stock</label>
-              <input
-                type="number"
-                placeholder="0"
-                value={filters.minStock || ''}
-                onChange={(e) => handleFilterChange('minStock', e.target.value ? Number(e.target.value) : undefined)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Sort By</label>
-              <select
-                value={filters.sortBy}
-                onChange={(e) => handleFilterChange('sortBy', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="created_desc">Newest First</option>
-                <option value="created_asc">Oldest First</option>
-                <option value="price_asc">Price: Low to High</option>
-                <option value="price_desc">Price: High to Low</option>
-              </select>
-            </div>
-          </div>
-        )}
+        </form>
       </div>
 
       <div className="flex-1 overflow-y-auto p-4">

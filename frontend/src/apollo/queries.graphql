@@ -1,5 +1,5 @@
-query getProducts($category: String) {
-  getProducts(category: $category) {
+query getProducts($category: String, $sold: Boolean, $isNegotiable: Boolean, $search: String) {
+  getProducts(category: $category, sold: $sold, isNegotiable: $isNegotiable, search: $search) {
     id
     sold
     description
@@ -39,4 +39,28 @@ query GetProduct($id: ID!) {
     sold
     likes
   }
+}
+
+query GetCart {
+  getCart {
+    items {
+      id
+      user_id
+      product_id
+      quantity
+      product {
+        id
+        name
+        price
+        image_link
+        available_stocks
+      }
+    }
+    total_items
+    total_price
+  }
+}
+
+query GetCartItemCount {
+  getCartItemCount
 }

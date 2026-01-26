@@ -1,6 +1,9 @@
 -- name: GetProducts :many
 SELECT * FROM products
-WHERE ($1::text IS NULL OR category = $1);
+WHERE (sqlc.narg('category')::text IS NULL OR category = sqlc.narg('category'))
+  AND (sqlc.narg('sold')::bool IS NULL OR sold = sqlc.narg('sold'))
+  AND (sqlc.narg('is_negotiable')::bool IS NULL OR is_negotiable = sqlc.narg('is_negotiable'))
+  AND (sqlc.narg('search')::text IS NULL OR sqlc.narg('search')::text = '' OR name ILIKE '%' || sqlc.narg('search') || '%' OR description ILIKE '%' || sqlc.narg('search') || '%');
 
 -- name: GetProduct :one
 SELECT * FROM products WHERE id = $1 LIMIT 1;

@@ -44,13 +44,32 @@ func corsMiddleware(next http.Handler) http.Handler {
 func authMiddleware(tokenMaker token.Maker, queries *db.Queries) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// For GraphQL endpoint, we'll handle auth in resolvers
+			// For GraphQL endpoint, validate token and set auth context
 			if strings.HasPrefix(r.URL.Path, "/query") {
+				ctx := r.Context()
+
 				// Add token maker and queries to context for GraphQL resolvers
-				ctx := context.WithValue(r.Context(), "tokenMaker", tokenMaker)
+				ctx = context.WithValue(ctx, "tokenMaker", tokenMaker)
 				ctx = context.WithValue(ctx, "queries", queries)
-				// Pass Authorization header to context for resolvers
-				ctx = context.WithValue(ctx, "Authorization", r.Header.Get("Authorization"))
+
+				// Try to extract and validate the token
+				authHeader := r.Header.Get("Authorization")
+				if authHeader != "" {
+					fields := strings.Fields(authHeader)
+					if len(fields) == 2 && fields[0] == "Bearer" {
+						tokenStr := fields[1]
+						payload, err := tokenMaker.VerifyToken(tokenStr)
+						if err == nil {
+							// Token is valid, get user from database
+							user, err := queries.GetUserByUsername(ctx, payload.Username)
+							if err == nil {
+								// Set the auth context using the graph package function
+								ctx = graph.SetAuthContext(ctx, int64(user.ID), user.Username, payload.Role)
+							}
+						}
+					}
+				}
+
 				r = r.WithContext(ctx)
 			}
 			next.ServeHTTP(w, r)

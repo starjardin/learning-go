@@ -43,13 +43,27 @@ type AuthResponse {
   refreshToken: String!
 }
 
+type CartItem {
+  id: ID!
+  user_id: Int!
+  product_id: Int!
+  quantity: Int!
+  product: Product!
+}
+
+type Cart {
+  items: [CartItem!]!
+  total_items: Int!
+  total_price: Int!
+}
+
 type Query {
   getUser(id: ID!): User
   listUsers: [User!]!
   getCompanies: [Company!]!
   getCompany(id: ID!): Company
   categories: [Category!]!
-  getProducts(category: String): [Product!]!
+  getProducts(category: String, sold: Boolean, isNegotiable: Boolean, search: String): [Product!]!
   getProduct(id: ID!): Product
   getProductsAdvanced(
     search: String
@@ -71,6 +85,8 @@ type Query {
     sold: Boolean
     companyId: Int
   ): Int!
+  getCart: Cart!
+  getCartItemCount: Int!
 }
 
 type Mutation {
@@ -99,6 +115,11 @@ type Mutation {
   refreshToken(
     token: String!
   ): AuthResponse!
+
+  addToCart(productId: ID!, quantity: Int!): CartItem!
+  updateCartItemQuantity(productId: ID!, quantity: Int!): CartItem!
+  removeFromCart(productId: ID!): Boolean!
+  clearCart: Boolean!
 }
 
 input UserInput {

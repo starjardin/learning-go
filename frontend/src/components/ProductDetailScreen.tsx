@@ -1,15 +1,51 @@
-import { ArrowLeft, Heart, Star } from "lucide-react";
-import { Link, useParams } from "react-router-dom";
-import { useGetProductQuery } from "../apollo/generated/graphql";
+import { ArrowLeft, Heart, Star, ShoppingCart, Check, AlertCircle } from "lucide-react";
+import { Link, useParams, useNavigate } from "react-router-dom";
+import { useGetProductQuery, useAddToCartMutation } from "../apollo/generated/graphql";
+import { useState } from "react";
 
 export const ProductDetailScreen = () => {
     const { id } = useParams<{ id: string }>();
+    const navigate = useNavigate();
+    const [quantity, setQuantity] = useState(1);
+    const [isAdding, setIsAdding] = useState(false);
+    const [addedToCart, setAddedToCart] = useState(false);
+    const [authError, setAuthError] = useState(false);
+    
     const { data, loading, error } = useGetProductQuery({
       variables: { id: id as string },
       skip: !id,
     });
 
+    const [addToCartMutation] = useAddToCartMutation();
+
     const product = data?.getProduct;
+    const isAuthenticated = !!localStorage.getItem('token');
+
+    const handleAddToCart = async () => {
+      if (!id || !product || product.available_stocks === 0) return;
+      
+      if (!isAuthenticated) {
+        setAuthError(true);
+        return;
+      }
+      
+      setIsAdding(true);
+      setAuthError(false);
+      try {
+        await addToCartMutation({
+          variables: { productId: id, quantity },
+        });
+        setAddedToCart(true);
+        setTimeout(() => setAddedToCart(false), 2000);
+      } catch (err: any) {
+        console.error('Failed to add to cart:', err);
+        if (err?.message?.includes('authentication')) {
+          setAuthError(true);
+        }
+      } finally {
+        setIsAdding(false);
+      }
+    };
 
     if (loading) {
       return (
@@ -127,17 +163,78 @@ export const ProductDetailScreen = () => {
       </div>
 
       <div className="p-4 bg-white border-t">
-        <div className="flex gap-3">
-          <button className="flex-1 bg-gray-100 text-black py-4 rounded-lg font-medium">
-            Add to Wishlist
-          </button>
-          <Link 
-            className="flex-1 bg-black text-white py-4 rounded-lg font-medium text-center"
-            to='/cart'
-          >
-            Add to Cart
-          </Link>
+        <div className="flex items-center gap-3 mb-3">
+          <span className="text-sm text-gray-600">Quantity:</span>
+          <div className="flex items-center border border-gray-300 rounded-lg">
+            <button 
+              onClick={() => setQuantity(q => Math.max(1, q - 1))}
+              className="px-3 py-2 text-lg font-medium hover:bg-gray-100"
+              disabled={quantity <= 1}
+            >
+              -
+            </button>
+            <span className="px-4 py-2 font-medium">{quantity}</span>
+            <button 
+              onClick={() => setQuantity(q => Math.min(product?.available_stocks || 10, q + 1))}
+              className="px-3 py-2 text-lg font-medium hover:bg-gray-100"
+              disabled={quantity >= (product?.available_stocks || 10)}
+            >
+              +
+            </button>
+          </div>
         </div>
+        <div className="flex gap-3">
+          <button className="flex-1 bg-gray-100 text-black py-4 rounded-lg font-medium flex items-center justify-center gap-2">
+            <Heart className="w-5 h-5" />
+            Wishlist
+          </button>
+          <button 
+            onClick={handleAddToCart}
+            disabled={isAdding || product?.available_stocks === 0}
+            className={`flex-1 py-4 rounded-lg font-medium text-center flex items-center justify-center gap-2 transition-colors ${
+              addedToCart 
+                ? 'bg-green-600 text-white' 
+                : 'bg-black text-white hover:bg-gray-800'
+            } disabled:bg-gray-400 disabled:cursor-not-allowed`}
+          >
+            {isAdding ? (
+              <>
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                Adding...
+              </>
+            ) : addedToCart ? (
+              <>
+                <Check className="w-5 h-5" />
+                Added!
+              </>
+            ) : (
+              <>
+                <ShoppingCart className="w-5 h-5" />
+                Add to Cart
+              </>
+            )}
+          </button>
+        </div>
+        {authError && (
+          <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2">
+            <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
+            <span className="text-red-700 text-sm">Please sign in to add items to cart</span>
+            <button 
+              onClick={() => navigate('/signin')}
+              className="ml-auto text-sm font-medium text-red-700 underline hover:text-red-800"
+            >
+              Sign In
+            </button>
+          </div>
+        )}
+        {addedToCart && (
+          <button 
+            onClick={() => navigate('/cart')}
+            className="w-full mt-3 py-3 border-2 border-black text-black rounded-lg font-medium hover:bg-gray-50"
+          >
+            View Cart
+          </button>
+        )}
       </div>
     </div>
   }

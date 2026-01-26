@@ -10,6 +10,15 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type CartItem struct {
+	ID        int32              `db:"id" json:"id"`
+	UserID    int32              `db:"user_id" json:"user_id"`
+	ProductID int32              `db:"product_id" json:"product_id"`
+	Quantity  int32              `db:"quantity" json:"quantity"`
+	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+}
+
 type Category struct {
 	ID    int32  `db:"id" json:"id"`
 	Name  string `db:"name" json:"name"`

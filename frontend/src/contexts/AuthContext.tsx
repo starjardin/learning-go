@@ -1,43 +1,5 @@
 import React, { createContext, useContext, useReducer, useEffect, type ReactNode } from 'react';
-import { gql } from '@apollo/client';
-
-// GraphQL Mutations
-const LOGIN_MUTATION = gql`
-  mutation Login($email: String!, $password: String!) {
-    login(email: $email, password: $password) {
-      user {
-        id
-        username
-        email
-        full_name
-        address
-        phone_number
-        payment_method
-      }
-      token
-      refreshToken
-    }
-  }
-`;
-
-const REGISTER_MUTATION = gql`
-  mutation Register($input: UserInput!) {
-    createUser(input: $input) {
-      user {
-        id
-        username
-        email
-        full_name
-        address
-        phone_number
-        payment_method
-      }
-      token
-      refreshToken
-    }
-  }
-`;
-
+import { useLoginMutation, useRegisterMutation } from '../apollo/generated/graphql';
 // Types
 interface User {
   id: string;
@@ -144,6 +106,8 @@ interface AuthProviderProps {
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [state, dispatch] = useReducer(authReducer, initialState);
+  const [registerUser] = useRegisterMutation();
+  const [loginUser] = useLoginMutation();
 
   // Update localStorage when token changes
   useEffect(() => {
@@ -165,43 +129,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Login function
   const login = async (email: string, password: string): Promise<void> => {
     dispatch({ type: 'LOGIN_START' });
-    
-    try {
-      // For now, use fetch instead of Apollo for simplicity
-      const response = await fetch('http://localhost:8080/query', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          query: `
-            mutation Login($email: String!, $password: String!) {
-              login(email: $email, password: $password) {
-                user {
-                  id
-                  username
-                  email
-                  full_name
-                  address
-                  phone_number
-                  payment_method
-                }
-                token
-                refreshToken
-              }
-            }
-          `,
-          variables: { email, password },
-        }),
-      });
 
-      const result = await response.json();
-      
-      if (result.errors) {
-        dispatch({ type: 'LOGIN_FAILURE', payload: result.errors[0].message });
-      } else {
-        dispatch({ type: 'LOGIN_SUCCESS', payload: result.data.login });
-      }
+    try {
+
+      loginUser({
+        variables: {
+          email,
+          password,
+        }
+      })
     } catch (error) {
       dispatch({ type: 'LOGIN_FAILURE', payload: 'Network error occurred' });
     }
@@ -210,42 +146,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Register function
   const register = async (userData: any): Promise<void> => {
     dispatch({ type: 'LOGIN_START' });
-    
     try {
-      const response = await fetch('http://localhost:8080/query', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          query: `
-            mutation Register($input: UserInput!) {
-              createUser(input: $input) {
-                user {
-                  id
-                  username
-                  email
-                  full_name
-                  address
-                  phone_number
-                  payment_method
-                }
-                token
-                refreshToken
-              }
-            }
-          `,
-          variables: { input: userData },
-        }),
-      });
-
-      const result = await response.json();
-      
-      if (result.errors) {
-        dispatch({ type: 'LOGIN_FAILURE', payload: result.errors[0].message });
-      } else {
-        dispatch({ type: 'LOGIN_SUCCESS', payload: result.data.createUser });
-      }
+      registerUser({
+        variables: {
+          input: userData,
+        }
+      })
     } catch (error) {
       dispatch({ type: 'LOGIN_FAILURE', payload: 'Network error occurred' });
     }

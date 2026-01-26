@@ -14,3 +14,71 @@ mutation CreateProduct($input: CreateProductInput!) {
     category
     }
 }
+
+mutation AddToCart($productId: ID!, $quantity: Int!) {
+  addToCart(productId: $productId, quantity: $quantity) {
+    id
+    user_id
+    product_id
+    quantity
+    product {
+      id
+      name
+      price
+      image_link
+    }
+  }
+}
+
+mutation UpdateCartItemQuantity($productId: ID!, $quantity: Int!) {
+  updateCartItemQuantity(productId: $productId, quantity: $quantity) {
+    id
+    user_id
+    product_id
+    quantity
+  }
+}
+
+mutation RemoveFromCart($productId: ID!) {
+  removeFromCart(productId: $productId)
+}
+
+mutation ClearCart {
+  clearCart
+}
+
+
+
+mutation Login($email: String!, $password: String!) {
+login(email: $email, password: $password) {
+    user {
+    id
+    username
+    email
+    full_name
+    address
+    phone_number
+    payment_method
+    }
+    token
+    refreshToken
+}
+}
+
+
+
+mutation Register($input: UserInput!) {
+createUser(input: $input) {
+    user {
+    id
+    username
+    email
+    full_name
+    address
+    phone_number
+    payment_method
+    }
+    token
+    refreshToken
+}
+}

@@ -336,6 +336,8 @@ func (r *mutationResolver) UpdateProduct(ctx context.Context, id string, input m
 		ImageLink:       product.ImageLink,
 		AvailableStocks: int(product.AvailableStocks),
 		IsNegotiable:    product.IsNegotiable,
+		Sold:            product.Sold,
+		Likes:           int(product.Likes),
 		Category:        product.Category,
 	}, nil
 }
@@ -435,6 +437,163 @@ func (r *mutationResolver) RefreshToken(ctx context.Context, token string) (*mod
 		Token:        newAccessToken,
 		RefreshToken: newRefreshToken,
 	}, nil
+}
+
+// AddToCart is the resolver for the addToCart field.
+func (r *mutationResolver) AddToCart(ctx context.Context, productID string, quantity int) (*model.CartItem, error) {
+	authCtx, err := GetAuthFromContext(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("authentication required")
+	}
+
+	prodID, err := strconv.ParseInt(productID, 10, 64)
+	if err != nil {
+		return nil, fmt.Errorf("invalid product ID: %w", err)
+	}
+
+	// Verify product exists
+	product, err := r.Resolver.Queries.GetProduct(ctx, int32(prodID))
+	if err != nil {
+		return nil, fmt.Errorf("product not found: %w", err)
+	}
+
+	cartItem, err := r.Resolver.Queries.AddToCart(ctx, db.AddToCartParams{
+		UserID:    int32(authCtx.UserID),
+		ProductID: int32(prodID),
+		Quantity:  int32(quantity),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to add to cart: %w", err)
+	}
+
+	var responseCompanyID int
+	if product.CompanyID.Valid {
+		responseCompanyID = int(product.CompanyID.Int32)
+	}
+
+	return &model.CartItem{
+		ID:        fmt.Sprintf("%d", cartItem.ID),
+		UserID:    int(cartItem.UserID),
+		ProductID: int(cartItem.ProductID),
+		Quantity:  int(cartItem.Quantity),
+		Product: &model.Product{
+			ID:              fmt.Sprintf("%d", product.ID),
+			Name:            product.Name,
+			Description:     product.Description,
+			Price:           int(product.Price),
+			ImageLink:       product.ImageLink,
+			AvailableStocks: int(product.AvailableStocks),
+			IsNegotiable:    product.IsNegotiable,
+			OwnerID:         int(product.OwnerID),
+			CompanyID:       &responseCompanyID,
+			Sold:            product.Sold,
+			Likes:           int(product.Likes),
+			Category:        product.Category,
+		},
+	}, nil
+}
+
+// UpdateCartItemQuantity is the resolver for the updateCartItemQuantity field.
+func (r *mutationResolver) UpdateCartItemQuantity(ctx context.Context, productID string, quantity int) (*model.CartItem, error) {
+	authCtx, err := GetAuthFromContext(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("authentication required")
+	}
+
+	prodID, err := strconv.ParseInt(productID, 10, 64)
+	if err != nil {
+		return nil, fmt.Errorf("invalid product ID: %w", err)
+	}
+
+	// If quantity is 0 or less, remove the item
+	if quantity <= 0 {
+		err = r.Resolver.Queries.RemoveFromCart(ctx, db.RemoveFromCartParams{
+			UserID:    int32(authCtx.UserID),
+			ProductID: int32(prodID),
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to remove from cart: %w", err)
+		}
+		return nil, nil
+	}
+
+	cartItem, err := r.Resolver.Queries.UpdateCartItemQuantity(ctx, db.UpdateCartItemQuantityParams{
+		UserID:    int32(authCtx.UserID),
+		ProductID: int32(prodID),
+		Quantity:  int32(quantity),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to update cart item: %w", err)
+	}
+
+	product, err := r.Resolver.Queries.GetProduct(ctx, int32(prodID))
+	if err != nil {
+		return nil, fmt.Errorf("product not found: %w", err)
+	}
+
+	var responseCompanyID int
+	if product.CompanyID.Valid {
+		responseCompanyID = int(product.CompanyID.Int32)
+	}
+
+	return &model.CartItem{
+		ID:        fmt.Sprintf("%d", cartItem.ID),
+		UserID:    int(cartItem.UserID),
+		ProductID: int(cartItem.ProductID),
+		Quantity:  int(cartItem.Quantity),
+		Product: &model.Product{
+			ID:              fmt.Sprintf("%d", product.ID),
+			Name:            product.Name,
+			Description:     product.Description,
+			Price:           int(product.Price),
+			ImageLink:       product.ImageLink,
+			AvailableStocks: int(product.AvailableStocks),
+			IsNegotiable:    product.IsNegotiable,
+			OwnerID:         int(product.OwnerID),
+			CompanyID:       &responseCompanyID,
+			Sold:            product.Sold,
+			Likes:           int(product.Likes),
+			Category:        product.Category,
+		},
+	}, nil
+}
+
+// RemoveFromCart is the resolver for the removeFromCart field.
+func (r *mutationResolver) RemoveFromCart(ctx context.Context, productID string) (bool, error) {
+	authCtx, err := GetAuthFromContext(ctx)
+	if err != nil {
+		return false, fmt.Errorf("authentication required")
+	}
+
+	prodID, err := strconv.ParseInt(productID, 10, 64)
+	if err != nil {
+		return false, fmt.Errorf("invalid product ID: %w", err)
+	}
+
+	err = r.Resolver.Queries.RemoveFromCart(ctx, db.RemoveFromCartParams{
+		UserID:    int32(authCtx.UserID),
+		ProductID: int32(prodID),
+	})
+	if err != nil {
+		return false, fmt.Errorf("failed to remove from cart: %w", err)
+	}
+
+	return true, nil
+}
+
+// ClearCart is the resolver for the clearCart field.
+func (r *mutationResolver) ClearCart(ctx context.Context) (bool, error) {
+	authCtx, err := GetAuthFromContext(ctx)
+	if err != nil {
+		return false, fmt.Errorf("authentication required")
+	}
+
+	err = r.Resolver.Queries.ClearCart(ctx, int32(authCtx.UserID))
+	if err != nil {
+		return false, fmt.Errorf("failed to clear cart: %w", err)
+	}
+
+	return true, nil
 }
 
 // GetUser is the resolver for the getUser field.
@@ -539,15 +698,41 @@ func (r *queryResolver) Categories(ctx context.Context) ([]*model.Category, erro
 }
 
 // GetProducts is the resolver for the getProducts field.
-func (r *queryResolver) GetProducts(ctx context.Context, category *string) ([]*model.Product, error) {
+func (r *queryResolver) GetProducts(ctx context.Context, category *string, sold *bool, isNegotiable *bool, search *string) ([]*model.Product, error) {
 	var categoryParam pgtype.Text
-	if category != nil {
+	if category != nil && *category != "" {
 		categoryParam = pgtype.Text{String: *category, Valid: true}
 	} else {
 		categoryParam = pgtype.Text{Valid: false}
 	}
 
-	products, err := r.Resolver.Queries.GetProducts(ctx, categoryParam)
+	var soldParam pgtype.Bool
+	if sold != nil {
+		soldParam = pgtype.Bool{Bool: *sold, Valid: true}
+	} else {
+		soldParam = pgtype.Bool{Valid: false}
+	}
+
+	var isNegotiableParam pgtype.Bool
+	if isNegotiable != nil {
+		isNegotiableParam = pgtype.Bool{Bool: *isNegotiable, Valid: true}
+	} else {
+		isNegotiableParam = pgtype.Bool{Valid: false}
+	}
+
+	var searchParam pgtype.Text
+	if search != nil && *search != "" {
+		searchParam = pgtype.Text{String: *search, Valid: true}
+	} else {
+		searchParam = pgtype.Text{Valid: false}
+	}
+
+	products, err := r.Resolver.Queries.GetProducts(ctx, db.GetProductsParams{
+		Category:     categoryParam,
+		Sold:         soldParam,
+		IsNegotiable: isNegotiableParam,
+		Search:       searchParam,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get products: %w", err)
 	}
@@ -568,6 +753,8 @@ func (r *queryResolver) GetProducts(ctx context.Context, category *string) ([]*m
 			ImageLink:       product.ImageLink,
 			AvailableStocks: int(product.AvailableStocks),
 			IsNegotiable:    product.IsNegotiable,
+			Sold:            product.Sold,
+			Likes:           int(product.Likes),
 			Category:        product.Category,
 		})
 	}
@@ -604,6 +791,8 @@ func (r *queryResolver) GetProduct(ctx context.Context, id string) (*model.Produ
 		ImageLink:       product.ImageLink,
 		AvailableStocks: int(product.AvailableStocks),
 		IsNegotiable:    product.IsNegotiable,
+		Sold:            product.Sold,
+		Likes:           int(product.Likes),
 		Category:        product.Category,
 	}, nil
 }
@@ -621,6 +810,66 @@ func (r *queryResolver) GetProductsByOwner(ctx context.Context, ownerID string) 
 // GetProductCount is the resolver for the getProductCount field.
 func (r *queryResolver) GetProductCount(ctx context.Context, search *string, minPrice *int, maxPrice *int, minStock *int, sold *bool, companyID *int) (int, error) {
 	return 0, nil
+}
+
+// GetCart is the resolver for the getCart field.
+func (r *queryResolver) GetCart(ctx context.Context) (*model.Cart, error) {
+	authCtx, err := GetAuthFromContext(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("authentication required")
+	}
+
+	cartItems, err := r.Resolver.Queries.GetCartItems(ctx, int32(authCtx.UserID))
+	if err != nil {
+		return nil, fmt.Errorf("failed to get cart items: %w", err)
+	}
+
+	var items []*model.CartItem
+	var totalPrice int
+
+	for _, item := range cartItems {
+		product := &model.Product{
+			ID:              fmt.Sprintf("%d", item.ProductID),
+			Name:            item.Name,
+			Price:           int(item.Price),
+			ImageLink:       item.ImageLink,
+			AvailableStocks: int(item.AvailableStocks),
+		}
+		items = append(items, &model.CartItem{
+			ID:        fmt.Sprintf("%d", item.ID),
+			UserID:    int(item.UserID),
+			ProductID: int(item.ProductID),
+			Quantity:  int(item.Quantity),
+			Product:   product,
+		})
+		totalPrice += int(item.Price) * int(item.Quantity)
+	}
+
+	totalItems, err := r.Resolver.Queries.GetCartItemCount(ctx, int32(authCtx.UserID))
+	if err != nil {
+		return nil, fmt.Errorf("failed to get cart item count: %w", err)
+	}
+
+	return &model.Cart{
+		Items:      items,
+		TotalItems: int(totalItems),
+		TotalPrice: totalPrice,
+	}, nil
+}
+
+// GetCartItemCount is the resolver for the getCartItemCount field.
+func (r *queryResolver) GetCartItemCount(ctx context.Context) (int, error) {
+	authCtx, err := GetAuthFromContext(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("authentication required")
+	}
+
+	count, err := r.Resolver.Queries.GetCartItemCount(ctx, int32(authCtx.UserID))
+	if err != nil {
+		return 0, fmt.Errorf("failed to get cart item count: %w", err)
+	}
+
+	return int(count), nil
 }
 
 // Mutation returns MutationResolver implementation.

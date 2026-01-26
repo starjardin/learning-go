@@ -20,6 +20,7 @@ import { ProductsScreen } from './components/ProductsScreen.tsx';
 import { CategoriesScreen } from './components/CategoriesScreen.tsx';
 import { AuthProvider } from './contexts/AuthContext.tsx';
 import { CreateProductScreen } from './components/CreateProductScreen.tsx';
+import { CartScreen } from './components/CartScreen.tsx';
 
 const httpLink = new HttpLink({ uri: "http://localhost:8080/query" });
 
@@ -39,11 +40,11 @@ const client = new ApolloClient({
 });
 
 function isAuthenticated() {
-  return !localStorage.getItem('token');
+  return !!localStorage.getItem('token');
 }
 
 function requireAuthLoader() {
-  if (isAuthenticated()) {
+  if (!isAuthenticated()) {
     throw redirect("/signin");
   }
   return null;
@@ -81,6 +82,12 @@ const router = createBrowserRouter([
   {
     path: "/categories",
     element: <CategoriesScreen />,
+    loader: requireAuthLoader,
+    errorElement: <ErrorBoundary />
+  },
+  {
+    path: "/cart",
+    element: <CartScreen />,
     loader: requireAuthLoader,
     errorElement: <ErrorBoundary />
   },

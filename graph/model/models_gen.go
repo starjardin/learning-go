@@ -8,6 +8,20 @@ type AuthResponse struct {
 	RefreshToken string `json:"refreshToken"`
 }
 
+type Cart struct {
+	Items      []*CartItem `json:"items"`
+	TotalItems int         `json:"total_items"`
+	TotalPrice int         `json:"total_price"`
+}
+
+type CartItem struct {
+	ID        string   `json:"id"`
+	UserID    int      `json:"user_id"`
+	ProductID int      `json:"product_id"`
+	Quantity  int      `json:"quantity"`
+	Product   *Product `json:"product"`
+}
+
 type Category struct {
 	ID    string `json:"id"`
 	Name  string `json:"name"`

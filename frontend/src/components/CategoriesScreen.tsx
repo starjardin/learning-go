@@ -15,7 +15,9 @@ const categoryIcons: Record<string, string> = {
 export const CategoriesScreen = () => {
   const navigate = useNavigate();
   const { data, loading, error } = useGetCategoriesQuery();
-  const { data: productsData } = useGetProductsQuery();
+  const { data: productsData } = useGetProductsQuery({
+    variables: { sold: false }
+  });
 
     const [cartItems, setCartItems] = useState([
         { id: 1, name: 'Samsung Galaxy S22', price: 699.99, quantity: 1, image: '/api/placeholder/60/60' },
@@ -72,23 +74,30 @@ export const CategoriesScreen = () => {
         {error && <p className="text-red-500">Error loading categories: {error.message}</p>}
         <div className="grid grid-cols-2 gap-4">
           {categories.map(category => (
-            <div key={category.id} className="bg-gray-50 rounded-lg p-4 cursor-pointer hover:bg-gray-100 transition-colors">
+            <Link 
+              key={category.id} 
+              to={`/products?category=${category.value}`}
+              className="bg-gray-50 rounded-lg p-4 cursor-pointer hover:bg-gray-100 transition-colors"
+            >
               <div className="text-3xl mb-2">{categoryIcons[category.value] || '📦'}</div>
               <h3 className="font-medium text-gray-800 mb-1">{category.name}</h3>
-            </div>
+            </Link>
           ))}
         </div>
       </div>
 
       <div className="p-4">
-        <h3 className="font-bold text-lg mb-3">Featured Products</h3>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-bold text-lg">Featured Products</h3>
+          <Link to="/products" className="text-blue-600 text-sm hover:underline">View All</Link>
+        </div>
         <div className="grid grid-cols-2 gap-4">
           {products.slice(0, 4).map(product => (
-            <div key={product.id} className="bg-white border rounded-lg p-3">
+            <Link key={product.id} to={`/products/${product.id}`} className="bg-white border rounded-lg p-3 hover:shadow-md transition-shadow">
               <img src={product.image_link} alt={product.name} className="w-full h-32 bg-gray-200 rounded-lg mb-2 object-cover" />
               <h4 className="font-medium text-sm mb-1">{product.name}</h4>
               <p className="text-lg font-bold">${product.price}</p>
-            </div>
+            </Link>
           ))}
         </div>
       </div>
