@@ -1,0 +1,32 @@
+# Docker Compose for Onja Products
+# Single container with all services (PostgreSQL + Backend + Frontend)
+
+version: '3.8'
+
+services:
+  onja-products:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: onja-products-app
+    ports:
+      - "3000:80"      # Frontend (via nginx)
+      - "8080:8080"    # Backend API (direct access)
+    environment:
+      - TOKEN_SYMETRIC_KEY=abcdefghijklmnopqrstuvwxyz123456
+      - ACCESS_TOKEN_DURATION=15m
+      - REFRESH_TOKEN_DURATION=24h
+    volumes:
+      # Persist PostgreSQL data
+      - onja_postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+volumes:
+  onja_postgres_data:
+    driver: local

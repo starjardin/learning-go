@@ -21,10 +21,29 @@ func LoadConfig(path string) (config Config, err error) {
 	viper.AddConfigPath(path)
 	viper.SetConfigName("app")
 	viper.SetConfigType("env")
+
+	// Enable reading from environment variables
 	viper.AutomaticEnv()
-	if err := viper.ReadInConfig(); err != nil {
-		return config, err
-	}
+
+	// Explicitly bind environment variables to config keys
+	viper.BindEnv("DB_DRIVER")
+	viper.BindEnv("DB_SOURCE")
+	viper.BindEnv("MIGRATION_URL")
+	viper.BindEnv("HTTP_SERVER_ADDRESS")
+	viper.BindEnv("GRPC_SERVER_ADDRESS")
+	viper.BindEnv("TOKEN_SYMETRIC_KEY")
+	viper.BindEnv("ACCESS_TOKEN_DURATION")
+	viper.BindEnv("REFRESH_TOKEN_DURATION")
+
+	// Set defaults
+	viper.SetDefault("DB_DRIVER", "postgres")
+	viper.SetDefault("HTTP_SERVER_ADDRESS", "0.0.0.0:8080")
+	viper.SetDefault("ACCESS_TOKEN_DURATION", "15m")
+	viper.SetDefault("REFRESH_TOKEN_DURATION", "24h")
+
+	// Try to read config file, but don't fail if it doesn't exist
+	_ = viper.ReadInConfig()
+
 	if err := viper.Unmarshal(&config); err != nil {
 		return config, err
 	}

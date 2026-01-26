@@ -22,7 +22,9 @@ import { AuthProvider } from './contexts/AuthContext.tsx';
 import { CreateProductScreen } from './components/CreateProductScreen.tsx';
 import { CartScreen } from './components/CartScreen.tsx';
 
-const httpLink = new HttpLink({ uri: "http://localhost:8080/query" });
+// Use environment variable for API URL, fallback to relative path for production
+const API_URL = import.meta.env.VITE_API_URL || '/query';
+const httpLink = new HttpLink({ uri: API_URL });
 
 const authLink = setContext((_, { headers }) => {
   const token = localStorage.getItem('token');
@@ -100,10 +102,10 @@ const router = createBrowserRouter([
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <AuthProvider>
-      <ApolloProvider client={client}>
+    <ApolloProvider client={client}>
+      <AuthProvider>
         <RouterProvider router={router} />
-      </ApolloProvider>
-    </AuthProvider>
+      </AuthProvider>
+    </ApolloProvider>
   </StrictMode>,
 )

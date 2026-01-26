@@ -17,11 +17,6 @@ export const CartScreen = () => {
         refetch();
     };
 
-    const handleRemoveItem = async (productId: number) => {
-        await removeFromCart({ variables: { productId: String(productId) } });
-        refetch();
-    };
-
     const handleClearCart = async () => {
         await clearCart();
         refetch();

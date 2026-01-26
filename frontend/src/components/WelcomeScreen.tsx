@@ -31,7 +31,7 @@ export const WelcomeScreen: React.FC = () => {
 
           {/* Welcome Message */}
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Welcome, {user?.fullName}!
+            Welcome, {user?.full_name}!
           </h1>
           <p className="text-gray-600 mb-8">
             Your account has been created successfully. Start exploring our amazing products now!

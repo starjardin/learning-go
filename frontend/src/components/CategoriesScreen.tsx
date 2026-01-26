@@ -19,7 +19,7 @@ export const CategoriesScreen = () => {
     variables: { sold: false }
   });
 
-    const [cartItems, setCartItems] = useState([
+    const [cartItems] = useState([
         { id: 1, name: 'Samsung Galaxy S22', price: 699.99, quantity: 1, image: '/api/placeholder/60/60' },
         { id: 2, name: 'iPhone 14', price: 899.99, quantity: 2, image: '/api/placeholder/60/60' }
     ]);

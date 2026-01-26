@@ -1,0 +1,47 @@
+# Dependencies
+node_modules/
+frontend/node_modules/
+
+# Build outputs (we rebuild in Docker)
+frontend/dist/
+onja-products
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Documentation
+*.md
+!README.md
+
+# Environment files (use Docker ENV instead)
+app.env
+.env
+.env.*
+
+# Test and mock files
+**/*_test.go
+**/mock/
+**/*.test.ts
+**/*.spec.ts
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Backup files
+*.backup
+*.bak
