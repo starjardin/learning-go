@@ -40,6 +40,13 @@ gqlgen:
 server:
 	go run main.go
 
+start:
+	docker start onja_products_db || docker run --name onja_products_db -p 5432:5432 -e POSTGRES_USER=root -e POSTGRES_PASSWORD=password -d postgres:17-alpine
+	@echo "Waiting for PostgreSQL to be ready..."
+	@sleep 3
+	docker exec -it onja_products_db createdb --username=root --owner=root onja_products 2>/dev/null || true
+	migrate -path db/migrations -database "postgresql://root:password@localhost:5432/onja_products?sslmode=disable" -verbose up
+
 mock:
 	mockgen -package mockdb --destination db/mock/store.go github.com/starjardin/onja-products/db/sqlc Store
 

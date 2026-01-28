@@ -106,6 +106,7 @@ func main() {
 		DB:         &store,
 		Queries:    queries,
 		TokenMaker: tokenMaker,
+		Config:     config,
 	}
 
 	srv := handler.New(graph.NewExecutableSchema(graph.Config{Resolvers: resolver}))

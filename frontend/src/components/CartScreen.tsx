@@ -82,7 +82,7 @@ export const CartScreen = () => {
                 )}
                 {items.length === 0 && <div className="w-6" />}
             </div>
-      
+
             <div className="flex-1 p-4 overflow-auto">
                 {items.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-full text-gray-500">
@@ -95,24 +95,24 @@ export const CartScreen = () => {
                 ) : (
                     items.map(item => (
                         <div key={item.id} className="flex items-center bg-gray-50 p-4 rounded-lg mb-3">
-                            <img 
-                                src={item.product?.image_link?.[0] || '/api/placeholder/60/60'} 
-                                alt={item.product?.name || 'Product'} 
-                                className="w-16 h-16 rounded-lg bg-gray-200 object-cover" 
+                            <img
+                                src={item.product?.image_link?.[0] || '/api/placeholder/60/60'}
+                                alt={item.product?.name || 'Product'}
+                                className="w-16 h-16 rounded-lg bg-gray-200 object-cover"
                             />
                             <div className="flex-1 ml-3">
                                 <h3 className="font-medium text-gray-800">{item.product?.name}</h3>
                                 <p className="text-lg font-bold text-black">${item.product?.price?.toFixed(2)}</p>
                             </div>
                             <div className="flex items-center">
-                                <button 
+                                <button
                                     onClick={() => handleUpdateQuantity(item.product_id, item.quantity - 1)}
                                     className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-100"
                                 >
                                     <Minus className="w-4 h-4" />
                                 </button>
                                 <span className="mx-3 font-medium">{item.quantity}</span>
-                                <button 
+                                <button
                                     onClick={() => handleUpdateQuantity(item.product_id, item.quantity + 1)}
                                     className="w-8 h-8 rounded-full bg-black text-white flex items-center justify-center hover:bg-gray-800"
                                 >

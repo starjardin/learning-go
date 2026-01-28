@@ -6,6 +6,7 @@ require (
 	github.com/99designs/gqlgen v0.17.86
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.7.5
+	github.com/jordan-wright/email v4.0.1-0.20210109023952-943e75fe5223+incompatible
 	github.com/o1egl/paseto v1.0.0
 	github.com/spf13/viper v1.20.1
 	github.com/vektah/gqlparser/v2 v2.5.31

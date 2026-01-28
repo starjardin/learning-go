@@ -14,10 +14,12 @@ type Querier interface {
 	AddToCart(ctx context.Context, arg AddToCartParams) (CartItem, error)
 	ClearCart(ctx context.Context, userID int32) error
 	CreateCompany(ctx context.Context, name string) (Company, error)
+	CreateEmailVerification(ctx context.Context, arg CreateEmailVerificationParams) (EmailVerification, error)
 	CreateProduct(ctx context.Context, arg CreateProductParams) (Product, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	CreateUserSecurity(ctx context.Context, arg CreateUserSecurityParams) (UserSecurity, error)
 	DeleteCompany(ctx context.Context, id int32) error
+	DeleteExpiredEmailVerifications(ctx context.Context) error
 	DeleteProduct(ctx context.Context, id int32) (Product, error)
 	DeleteUser(ctx context.Context, id int32) error
 	GetCartItem(ctx context.Context, arg GetCartItemParams) (CartItem, error)
@@ -30,6 +32,7 @@ type Querier interface {
 	GetCompanyById(ctx context.Context, id int32) (Company, error)
 	GetCompanyByName(ctx context.Context, name string) (Company, error)
 	GetCompanyByNameOrId(ctx context.Context, name string) (Company, error)
+	GetEmailVerificationByToken(ctx context.Context, token string) (EmailVerification, error)
 	GetProduct(ctx context.Context, id int32) (Product, error)
 	GetProductCount(ctx context.Context, arg GetProductCountParams) (int64, error)
 	GetProducts(ctx context.Context, arg GetProductsParams) ([]Product, error)
@@ -39,12 +42,14 @@ type Querier interface {
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByUsername(ctx context.Context, username string) (User, error)
 	GetUsers(ctx context.Context) ([]User, error)
+	MarkEmailVerified(ctx context.Context, token string) (EmailVerification, error)
 	RemoveFromCart(ctx context.Context, arg RemoveFromCartParams) error
 	SearchProducts(ctx context.Context, dollar_1 pgtype.Text) ([]Product, error)
 	UpdateCartItemQuantity(ctx context.Context, arg UpdateCartItemQuantityParams) (CartItem, error)
 	UpdateCompany(ctx context.Context, arg UpdateCompanyParams) (Company, error)
 	UpdateProduct(ctx context.Context, arg UpdateProductParams) (Product, error)
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error)
+	UpdateUserIsVerified(ctx context.Context, id int32) (User, error)
 }
 
 var _ Querier = (*Queries)(nil)

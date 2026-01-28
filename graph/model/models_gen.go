@@ -66,6 +66,11 @@ type Product struct {
 type Query struct {
 }
 
+type SignupResponse struct {
+	User    *User  `json:"user"`
+	Message string `json:"message"`
+}
+
 type UpdateProductInput struct {
 	Name            *string `json:"name,omitempty"`
 	ImageLink       *string `json:"image_link,omitempty"`

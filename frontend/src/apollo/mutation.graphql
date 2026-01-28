@@ -78,6 +78,21 @@ createUser(input: $input) {
     phone_number
     payment_method
     }
+    message
+}
+}
+
+mutation VerifyEmail($token: String!) {
+verifyEmail(token: $token) {
+    user {
+    id
+    username
+    email
+    full_name
+    address
+    phone_number
+    payment_method
+    }
     token
     refreshToken
 }

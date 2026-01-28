@@ -1,0 +1,14 @@
+./app.env
+app.env
+
+*.env
+
+onja-products
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+.DS_Store
+
+.opencode

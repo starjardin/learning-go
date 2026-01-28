@@ -2,6 +2,7 @@ package graph
 
 import (
 	"github.com/starjardin/onja-products/token"
+	"github.com/starjardin/onja-products/utils"
 
 	db "github.com/starjardin/onja-products/db/sqlc"
 )
@@ -14,4 +15,5 @@ type Resolver struct {
 	DB         *db.Store
 	Queries    *db.Queries
 	TokenMaker token.Maker
+	Config     utils.Config
 }

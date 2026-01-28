@@ -72,7 +72,7 @@ export type Mutation = {
   clearCart: Scalars['Boolean']['output'];
   createCompany: Company;
   createProduct: Product;
-  createUser: AuthResponse;
+  createUser: SignupResponse;
   deleteCompany: Scalars['Boolean']['output'];
   deleteProduct: Scalars['Boolean']['output'];
   deleteUser: Scalars['Boolean']['output'];
@@ -83,6 +83,7 @@ export type Mutation = {
   updateCompany: Company;
   updateProduct: Product;
   updateUser: User;
+  verifyEmail: AuthResponse;
 };
 
 
@@ -159,6 +160,11 @@ export type MutationUpdateProductArgs = {
 export type MutationUpdateUserArgs = {
   id: Scalars['ID']['input'];
   input: UpdateUserInput;
+};
+
+
+export type MutationVerifyEmailArgs = {
+  token: Scalars['String']['input'];
 };
 
 export type Product = {
@@ -242,6 +248,12 @@ export type QueryGetProductsByOwnerArgs = {
 
 export type QueryGetUserArgs = {
   id: Scalars['ID']['input'];
+};
+
+export type SignupResponse = {
+  __typename?: 'SignupResponse';
+  message: Scalars['String']['output'];
+  user: User;
 };
 
 export type UpdateProductInput = {
@@ -337,7 +349,14 @@ export type RegisterMutationVariables = Exact<{
 }>;
 
 
-export type RegisterMutation = { __typename?: 'Mutation', createUser: { __typename?: 'AuthResponse', token: string, refreshToken: string, user: { __typename?: 'User', id: string, username: string, email: string, full_name: string, address: string, phone_number: string, payment_method: string } } };
+export type RegisterMutation = { __typename?: 'Mutation', createUser: { __typename?: 'SignupResponse', message: string, user: { __typename?: 'User', id: string, username: string, email: string, full_name: string, address: string, phone_number: string, payment_method: string } } };
+
+export type VerifyEmailMutationVariables = Exact<{
+  token: Scalars['String']['input'];
+}>;
+
+
+export type VerifyEmailMutation = { __typename?: 'Mutation', verifyEmail: { __typename?: 'AuthResponse', token: string, refreshToken: string, user: { __typename?: 'User', id: string, username: string, email: string, full_name: string, address: string, phone_number: string, payment_method: string } } };
 
 export type GetProductsQueryVariables = Exact<{
   category?: InputMaybe<Scalars['String']['input']>;
@@ -613,8 +632,7 @@ export const RegisterDocument = gql`
       phone_number
       payment_method
     }
-    token
-    refreshToken
+    message
   }
 }
     `;
@@ -644,6 +662,49 @@ export function useRegisterMutation(baseOptions?: Apollo.MutationHookOptions<Reg
 export type RegisterMutationHookResult = ReturnType<typeof useRegisterMutation>;
 export type RegisterMutationResult = Apollo.MutationResult<RegisterMutation>;
 export type RegisterMutationOptions = Apollo.BaseMutationOptions<RegisterMutation, RegisterMutationVariables>;
+export const VerifyEmailDocument = gql`
+    mutation VerifyEmail($token: String!) {
+  verifyEmail(token: $token) {
+    user {
+      id
+      username
+      email
+      full_name
+      address
+      phone_number
+      payment_method
+    }
+    token
+    refreshToken
+  }
+}
+    `;
+export type VerifyEmailMutationFn = Apollo.MutationFunction<VerifyEmailMutation, VerifyEmailMutationVariables>;
+
+/**
+ * __useVerifyEmailMutation__
+ *
+ * To run a mutation, you first call `useVerifyEmailMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useVerifyEmailMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [verifyEmailMutation, { data, loading, error }] = useVerifyEmailMutation({
+ *   variables: {
+ *      token: // value for 'token'
+ *   },
+ * });
+ */
+export function useVerifyEmailMutation(baseOptions?: Apollo.MutationHookOptions<VerifyEmailMutation, VerifyEmailMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<VerifyEmailMutation, VerifyEmailMutationVariables>(VerifyEmailDocument, options);
+      }
+export type VerifyEmailMutationHookResult = ReturnType<typeof useVerifyEmailMutation>;
+export type VerifyEmailMutationResult = Apollo.MutationResult<VerifyEmailMutation>;
+export type VerifyEmailMutationOptions = Apollo.BaseMutationOptions<VerifyEmailMutation, VerifyEmailMutationVariables>;
 export const GetProductsDocument = gql`
     query getProducts($category: String, $sold: Boolean, $isNegotiable: Boolean, $search: String) {
   getProducts(

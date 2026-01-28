@@ -14,11 +14,12 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	db "github.com/starjardin/onja-products/db/sqlc"
 	"github.com/starjardin/onja-products/graph/model"
+	"github.com/starjardin/onja-products/mail"
 	"github.com/starjardin/onja-products/utils"
 )
 
 // CreateUser is the resolver for the createUser field.
-func (r *mutationResolver) CreateUser(ctx context.Context, input model.UserInput) (*model.AuthResponse, error) {
+func (r *mutationResolver) CreateUser(ctx context.Context, input model.UserInput) (*model.SignupResponse, error) {
 	email := input.Email
 
 	userByEmail, err := r.Resolver.Queries.GetUserByEmail(ctx, email)
@@ -66,17 +67,89 @@ func (r *mutationResolver) CreateUser(ctx context.Context, input model.UserInput
 	})
 
 	if err != nil {
-		return nil, fmt.Errorf("falied to insert user security: %w", err)
+		return nil, fmt.Errorf("failed to insert user security: %w", err)
 	}
 
-	accessToken, _, err := r.TokenMaker.CreateToken(user.Username, "user", 24*time.Hour)
+	// Generate email verification token
+	verificationToken, err := generateVerificationToken()
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate verification token: %w", err)
+	}
 
+	// Store the verification token with 24 hour expiry
+	verifyEmail, err := r.Resolver.Queries.CreateEmailVerification(ctx, db.CreateEmailVerificationParams{
+		UserID:    user.ID,
+		Token:     verificationToken,
+		ExpiresAt: pgtype.Timestamptz{Time: time.Now().Add(24 * time.Hour), Valid: true},
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to create email verification: %w", err)
+	}
+
+	subject := "Welcome to Super Product"
+
+	verifyUrl := fmt.Sprintf("http://localhost:8080/v1/verify_email?email_id=%d&secret_code=%s", verifyEmail.ID, verifyEmail.Token)
+
+	content := fmt.Sprintf(`
+		<h1>Hello %s</h1>
+		<p>Thank you for registering with Super Product.</p>
+		<p>Please <a href="%s">Click here </a> to verify your email address.</p>
+	`, user.FullName, verifyUrl)
+
+	to := []string{user.Email}
+
+	sender := mail.NewGmailSender("", r.Config.EmailSenderAddress, r.Config.EmailSenderPassword)
+	err = sender.SendEmail(subject, content, to, nil, nil, nil)
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to send verification email: %w", err)
+	}
+
+	return &model.SignupResponse{
+		User: &model.User{
+			ID:            fmt.Sprintf("%d", user.ID),
+			Username:      user.Username,
+			Email:         user.Email,
+			FullName:      user.FullName,
+			Address:       user.Address.String,
+			PhoneNumber:   user.PhoneNumber.String,
+			PaymentMethod: user.PaymentMethod.String,
+		},
+		Message: "Account created successfully. Please check your email to verify your account.",
+	}, nil
+}
+
+// VerifyEmail is the resolver for the verifyEmail field.
+func (r *mutationResolver) VerifyEmail(ctx context.Context, token string) (*model.AuthResponse, error) {
+	// Get the verification record
+	verification, err := r.Resolver.Queries.GetEmailVerificationByToken(ctx, token)
+	if err != nil {
+		if err.Error() == "no rows in result set" {
+			return nil, fmt.Errorf("invalid or expired verification token")
+		}
+		return nil, fmt.Errorf("failed to verify token: %w", err)
+	}
+
+	// Mark the token as verified
+	_, err = r.Resolver.Queries.MarkEmailVerified(ctx, token)
+	if err != nil {
+		return nil, fmt.Errorf("failed to mark email as verified: %w", err)
+	}
+
+	// Update the user's is_verified status
+	user, err := r.Resolver.Queries.UpdateUserIsVerified(ctx, verification.UserID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update user verification status: %w", err)
+	}
+
+	// Generate tokens for the now-verified user
+	accessToken, _, err := r.TokenMaker.CreateToken(user.Username, "user", 24*time.Hour)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create access token: %w", err)
 	}
 
 	refreshToken, _, err := r.TokenMaker.CreateToken(user.Username, "user", 7*24*time.Hour)
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to create refresh token: %w", err)
 	}
@@ -213,20 +286,9 @@ func (r *mutationResolver) UpdateCompany(ctx context.Context, id string, name st
 
 // CreateProduct is the resolver for the createProduct field.
 func (r *mutationResolver) CreateProduct(ctx context.Context, input model.CreateProductInput) (*model.Product, error) {
-	authHeader := ctx.Value("Authorization")
-
-	if authHeader == nil {
-		authHeader = ""
-	}
-
-	tokenStr, err := ExtractTokenFromHeader(authHeader.(string))
+	authCtx, err := GetAuthFromContext(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("authentication required: %w", err)
-	}
-
-	authCtx, err := r.ValidateTokenAndGetUser(ctx, tokenStr)
-	if err != nil {
-		return nil, fmt.Errorf("authentication failed: %w", err)
+		return nil, fmt.Errorf("authentication required")
 	}
 
 	ownerID := int32(authCtx.UserID)
@@ -376,6 +438,12 @@ func (r *mutationResolver) Login(ctx context.Context, email string, password str
 	if err != nil {
 		return nil, fmt.Errorf("invalid email or password")
 	}
+
+	// Optional: Check if email is verified
+	// Uncomment the following lines to require email verification before login
+	// if !user.IsVerified.Bool {
+	// 	return nil, fmt.Errorf("please verify your email before logging in")
+	// }
 
 	accessToken, _, err := r.TokenMaker.CreateToken(user.Username, "user", 24*time.Hour)
 	if err != nil {

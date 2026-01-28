@@ -43,6 +43,11 @@ type AuthResponse {
   refreshToken: String!
 }
 
+type SignupResponse {
+  user: User!
+  message: String!
+}
+
 type CartItem {
   id: ID!
   user_id: Int!
@@ -92,6 +97,10 @@ type Query {
 type Mutation {
   createUser(
     input: UserInput!
+  ): SignupResponse!
+
+  verifyEmail(
+    token: String!
   ): AuthResponse!
 
   updateUser(
