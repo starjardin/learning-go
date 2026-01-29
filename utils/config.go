@@ -7,6 +7,7 @@ import (
 )
 
 type Config struct {
+	Environment          string        `mapstructure:"ENVIRONMENT"`
 	DBDriver             string        `mapstructure:"DB_DRIVER"`
 	DBSource             string        `mapstructure:"DB_SOURCE"`
 	MigrationURL         string        `mapstructure:"MIGRATION_URL"`
@@ -17,6 +18,9 @@ type Config struct {
 	RefreshTokenDuration time.Duration `mapstructure:"REFRESH_TOKEN_DURATION"`
 	EmailSenderAddress   string        `mapstructure:"EMAIL_SENDER_ADDRESS"`
 	EmailSenderPassword  string        `mapstructure:"EMAIL_SENDER_PASSWORD"`
+	BaseURL              string        `mapstructure:"BASE_URL"`
+	RateLimitRPS         float64       `mapstructure:"RATE_LIMIT_RPS"`
+	RateLimitBurst       int           `mapstructure:"RATE_LIMIT_BURST"`
 }
 
 func LoadConfig(path string) (config Config, err error) {
@@ -28,6 +32,7 @@ func LoadConfig(path string) (config Config, err error) {
 	viper.AutomaticEnv()
 
 	// Explicitly bind environment variables to config keys
+	viper.BindEnv("ENVIRONMENT")
 	viper.BindEnv("DB_DRIVER")
 	viper.BindEnv("DB_SOURCE")
 	viper.BindEnv("MIGRATION_URL")
@@ -36,12 +41,19 @@ func LoadConfig(path string) (config Config, err error) {
 	viper.BindEnv("TOKEN_SYMETRIC_KEY")
 	viper.BindEnv("ACCESS_TOKEN_DURATION")
 	viper.BindEnv("REFRESH_TOKEN_DURATION")
+	viper.BindEnv("BASE_URL")
+	viper.BindEnv("RATE_LIMIT_RPS")
+	viper.BindEnv("RATE_LIMIT_BURST")
 
 	// Set defaults
+	viper.SetDefault("ENVIRONMENT", "development")
 	viper.SetDefault("DB_DRIVER", "postgres")
 	viper.SetDefault("HTTP_SERVER_ADDRESS", "0.0.0.0:8080")
 	viper.SetDefault("ACCESS_TOKEN_DURATION", "15m")
 	viper.SetDefault("REFRESH_TOKEN_DURATION", "24h")
+	viper.SetDefault("BASE_URL", "http://localhost:8080")
+	viper.SetDefault("RATE_LIMIT_RPS", 10.0)
+	viper.SetDefault("RATE_LIMIT_BURST", 20)
 
 	// Try to read config file, but don't fail if it doesn't exist
 	_ = viper.ReadInConfig()

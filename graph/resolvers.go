@@ -7,165 +7,69 @@ package graph
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 	"time"
 
+	pgx "github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	db "github.com/starjardin/onja-products/db/sqlc"
 	"github.com/starjardin/onja-products/graph/model"
-	"github.com/starjardin/onja-products/mail"
+	"github.com/starjardin/onja-products/services"
 	"github.com/starjardin/onja-products/utils"
 )
 
 // CreateUser is the resolver for the createUser field.
 func (r *mutationResolver) CreateUser(ctx context.Context, input model.UserInput) (*model.SignupResponse, error) {
-	email := input.Email
-
-	userByEmail, err := r.Resolver.Queries.GetUserByEmail(ctx, email)
-
-	if err != nil && err.Error() != "no rows in result set" {
-		return nil, fmt.Errorf("failed to check if user exists by email: %w", err)
-	}
-
-	if err == nil && userByEmail.Email == email {
-		return nil, fmt.Errorf("user with email %s already exists", email)
-	}
-
-	hashedPassword, err := utils.HashedPassword(input.Password)
-
-	if err != nil {
-		return nil, fmt.Errorf("failed to hash password: %w", err)
-	}
-
-	var companyID pgtype.Int4
-	if input.CompanyID != nil {
-		companyID = pgtype.Int4{Valid: true, Int32: int32(*input.CompanyID)}
-	} else {
-		companyID = pgtype.Int4{Valid: false}
-	}
-
-	user, err := r.Resolver.Queries.CreateUser(ctx, db.CreateUserParams{
-		Username:          input.Username,
-		HashedPassword:    hashedPassword,
-		Email:             input.Email,
-		FullName:          input.FullName,
-		Address:           pgtype.Text{String: input.Address, Valid: input.Address != ""},
-		PhoneNumber:       pgtype.Text{String: input.PhoneNumber, Valid: input.PhoneNumber != ""},
-		PaymentMethod:     pgtype.Text{String: input.PaymentMethod, Valid: input.PaymentMethod != ""},
-		PasswordChangedAt: pgtype.Timestamptz{Time: time.Now(), Valid: true},
-		CompanyID:         companyID,
+	// Use the UserService for user creation with validation
+	result, err := r.UserService.CreateUser(ctx, services.CreateUserParams{
+		Username:      input.Username,
+		Password:      input.Password,
+		Email:         input.Email,
+		FullName:      input.FullName,
+		Address:       input.Address,
+		PhoneNumber:   input.PhoneNumber,
+		PaymentMethod: input.PaymentMethod,
+		CompanyID:     input.CompanyID,
 	})
-
 	if err != nil {
-		return nil, fmt.Errorf("failed to create user: %w", err)
-	}
-
-	_, err = r.Resolver.Queries.CreateUserSecurity(ctx, db.CreateUserSecurityParams{
-		UserID:            user.ID,
-		SecurityQuestions: []byte("[]"),
-	})
-
-	if err != nil {
-		return nil, fmt.Errorf("failed to insert user security: %w", err)
-	}
-
-	// Generate email verification token
-	verificationToken, err := generateVerificationToken()
-	if err != nil {
-		return nil, fmt.Errorf("failed to generate verification token: %w", err)
-	}
-
-	// Store the verification token with 24 hour expiry
-	verifyEmail, err := r.Resolver.Queries.CreateEmailVerification(ctx, db.CreateEmailVerificationParams{
-		UserID:    user.ID,
-		Token:     verificationToken,
-		ExpiresAt: pgtype.Timestamptz{Time: time.Now().Add(24 * time.Hour), Valid: true},
-	})
-
-	if err != nil {
-		return nil, fmt.Errorf("failed to create email verification: %w", err)
-	}
-
-	subject := "Welcome to Super Product"
-
-	verifyUrl := fmt.Sprintf("http://localhost:8080/v1/verify_email?email_id=%d&secret_code=%s", verifyEmail.ID, verifyEmail.Token)
-
-	content := fmt.Sprintf(`
-		<h1>Hello %s</h1>
-		<p>Thank you for registering with Super Product.</p>
-		<p>Please <a href="%s">Click here </a> to verify your email address.</p>
-	`, user.FullName, verifyUrl)
-
-	to := []string{user.Email}
-
-	sender := mail.NewGmailSender("", r.Config.EmailSenderAddress, r.Config.EmailSenderPassword)
-	err = sender.SendEmail(subject, content, to, nil, nil, nil)
-
-	if err != nil {
-		return nil, fmt.Errorf("failed to send verification email: %w", err)
+		return nil, err
 	}
 
 	return &model.SignupResponse{
 		User: &model.User{
-			ID:            fmt.Sprintf("%d", user.ID),
-			Username:      user.Username,
-			Email:         user.Email,
-			FullName:      user.FullName,
-			Address:       user.Address.String,
-			PhoneNumber:   user.PhoneNumber.String,
-			PaymentMethod: user.PaymentMethod.String,
+			ID:            fmt.Sprintf("%d", result.User.ID),
+			Username:      result.User.Username,
+			Email:         result.User.Email,
+			FullName:      result.User.FullName,
+			Address:       result.User.Address.String,
+			PhoneNumber:   result.User.PhoneNumber.String,
+			PaymentMethod: result.User.PaymentMethod.String,
 		},
-		Message: "Account created successfully. Please check your email to verify your account.",
+		Message: result.Message,
 	}, nil
 }
 
 // VerifyEmail is the resolver for the verifyEmail field.
 func (r *mutationResolver) VerifyEmail(ctx context.Context, token string) (*model.AuthResponse, error) {
-	// Get the verification record
-	verification, err := r.Resolver.Queries.GetEmailVerificationByToken(ctx, token)
+	result, err := r.UserService.VerifyEmail(ctx, token)
 	if err != nil {
-		if err.Error() == "no rows in result set" {
-			return nil, fmt.Errorf("invalid or expired verification token")
-		}
-		return nil, fmt.Errorf("failed to verify token: %w", err)
-	}
-
-	// Mark the token as verified
-	_, err = r.Resolver.Queries.MarkEmailVerified(ctx, token)
-	if err != nil {
-		return nil, fmt.Errorf("failed to mark email as verified: %w", err)
-	}
-
-	// Update the user's is_verified status
-	user, err := r.Resolver.Queries.UpdateUserIsVerified(ctx, verification.UserID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to update user verification status: %w", err)
-	}
-
-	// Generate tokens for the now-verified user
-	accessToken, _, err := r.TokenMaker.CreateToken(user.Username, "user", 24*time.Hour)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create access token: %w", err)
-	}
-
-	refreshToken, _, err := r.TokenMaker.CreateToken(user.Username, "user", 7*24*time.Hour)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create refresh token: %w", err)
+		return nil, err
 	}
 
 	return &model.AuthResponse{
 		User: &model.User{
-			ID:            fmt.Sprintf("%d", user.ID),
-			Username:      user.Username,
-			Email:         user.Email,
-			FullName:      user.FullName,
-			Address:       user.Address.String,
-			PhoneNumber:   user.PhoneNumber.String,
-			PaymentMethod: user.PaymentMethod.String,
+			ID:            fmt.Sprintf("%d", result.User.ID),
+			Username:      result.User.Username,
+			Email:         result.User.Email,
+			FullName:      result.User.FullName,
+			Address:       result.User.Address.String,
+			PhoneNumber:   result.User.PhoneNumber.String,
+			PaymentMethod: result.User.PaymentMethod.String,
 		},
-		Token:        accessToken,
-		RefreshToken: refreshToken,
+		Token:        result.AccessToken,
+		RefreshToken: result.RefreshToken,
 	}, nil
 }
 
@@ -219,7 +123,7 @@ func (r *mutationResolver) UpdateUser(ctx context.Context, id string, input mode
 		params.CompanyID = pgtype.Int4{Valid: false}
 	}
 
-	user, err := r.Resolver.Queries.UpdateUser(ctx, params)
+	user, err := r.Store.UpdateUser(ctx, params)
 	if err != nil {
 		return nil, fmt.Errorf("failed to update user: %w", err)
 	}
@@ -242,7 +146,7 @@ func (r *mutationResolver) DeleteUser(ctx context.Context, id string) (bool, err
 		return false, fmt.Errorf("invalid user ID: %w", err)
 	}
 
-	err = r.Resolver.Queries.DeleteUser(ctx, int32(userID))
+	err = r.Store.DeleteUser(ctx, int32(userID))
 	if err != nil {
 		return false, fmt.Errorf("failed to delete user: %w", err)
 	}
@@ -252,7 +156,7 @@ func (r *mutationResolver) DeleteUser(ctx context.Context, id string) (bool, err
 
 // CreateCompany is the resolver for the createCompany field.
 func (r *mutationResolver) CreateCompany(ctx context.Context, name string) (*model.Company, error) {
-	company, err := r.Resolver.Queries.CreateCompany(ctx, name)
+	company, err := r.Store.CreateCompany(ctx, name)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create company: %w", err)
 	}
@@ -270,7 +174,7 @@ func (r *mutationResolver) UpdateCompany(ctx context.Context, id string, name st
 		return nil, fmt.Errorf("invalid company ID: %w", err)
 	}
 
-	company, err := r.Resolver.Queries.UpdateCompany(ctx, db.UpdateCompanyParams{
+	company, err := r.Store.UpdateCompany(ctx, db.UpdateCompanyParams{
 		ID:   int32(companyID),
 		Name: name,
 	})
@@ -293,29 +197,19 @@ func (r *mutationResolver) CreateProduct(ctx context.Context, input model.Create
 
 	ownerID := int32(authCtx.UserID)
 
-	var companyID pgtype.Int4
-	if input.CompanyID != nil {
-		companyID = pgtype.Int4{Valid: true, Int32: int32(*input.CompanyID)}
-	} else {
-		companyID = pgtype.Int4{Valid: false}
-	}
-	params := db.CreateProductParams{
+	product, err := r.ProductService.CreateProduct(ctx, services.CreateProductParams{
 		Name:            input.Name,
 		Description:     input.Description,
-		Price:           int32(input.Price),
-		CreatedAt:       pgtype.Timestamptz{Time: time.Now(), Valid: true},
-		UpdatedAt:       pgtype.Timestamptz{Time: time.Now(), Valid: true},
+		Price:           input.Price,
 		OwnerID:         ownerID,
-		CompanyID:       companyID,
+		CompanyID:       input.CompanyID,
 		ImageLink:       input.ImageLink,
-		AvailableStocks: int32(input.AvailableStocks),
+		AvailableStocks: input.AvailableStocks,
 		IsNegotiable:    input.IsNegotiable,
 		Category:        input.Category,
-	}
-
-	product, err := r.Resolver.Queries.CreateProduct(ctx, params)
+	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to create product: %w", err)
+		return nil, err
 	}
 
 	var responseCompanyID int
@@ -378,7 +272,7 @@ func (r *mutationResolver) UpdateProduct(ctx context.Context, id string, input m
 		params.Category = pgtype.Text{Valid: true, String: *input.Category}
 	}
 
-	product, err := r.Resolver.Queries.UpdateProduct(ctx, params)
+	product, err := r.Store.UpdateProduct(ctx, params)
 	if err != nil {
 		return nil, fmt.Errorf("failed to update product: %w", err)
 	}
@@ -406,7 +300,17 @@ func (r *mutationResolver) UpdateProduct(ctx context.Context, id string, input m
 
 // DeleteProduct is the resolver for the deleteProduct field.
 func (r *mutationResolver) DeleteProduct(ctx context.Context, id string) (bool, error) {
-	panic(fmt.Errorf("not implemented: DeleteProduct - deleteProduct"))
+	authCtx, err := GetAuthFromContext(ctx)
+	if err != nil {
+		return false, fmt.Errorf("authentication required")
+	}
+
+	_, err = r.ProductService.DeleteProduct(ctx, id, int32(authCtx.UserID))
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
 }
 
 // DeleteCompany is the resolver for the deleteCompany field.
@@ -416,7 +320,7 @@ func (r *mutationResolver) DeleteCompany(ctx context.Context, id string) (bool, 
 		return false, fmt.Errorf("invalid company ID: %w", err)
 	}
 
-	err = r.Resolver.Queries.DeleteCompany(ctx, int32(companyID))
+	err = r.Store.DeleteCompany(ctx, int32(companyID))
 	if err != nil {
 		return false, fmt.Errorf("failed to delete company: %w", err)
 	}
@@ -426,47 +330,26 @@ func (r *mutationResolver) DeleteCompany(ctx context.Context, id string) (bool, 
 
 // Login is the resolver for the login field.
 func (r *mutationResolver) Login(ctx context.Context, email string, password string) (*model.AuthResponse, error) {
-	user, err := r.Resolver.Queries.GetUserByEmail(ctx, email)
+	result, err := r.UserService.Login(ctx, services.LoginParams{
+		Email:    email,
+		Password: password,
+	})
 	if err != nil {
-		if err.Error() == "no rows in result set" {
-			return nil, fmt.Errorf("invalid email or password")
-		}
-		return nil, fmt.Errorf("failed to find user: %w", err)
-	}
-
-	err = utils.CheckPassword(password, user.HashedPassword)
-	if err != nil {
-		return nil, fmt.Errorf("invalid email or password")
-	}
-
-	// Optional: Check if email is verified
-	// Uncomment the following lines to require email verification before login
-	// if !user.IsVerified.Bool {
-	// 	return nil, fmt.Errorf("please verify your email before logging in")
-	// }
-
-	accessToken, _, err := r.TokenMaker.CreateToken(user.Username, "user", 24*time.Hour)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create access token: %w", err)
-	}
-
-	refreshToken, _, err := r.TokenMaker.CreateToken(user.Username, "user", 7*24*time.Hour)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create refresh token: %w", err)
+		return nil, err
 	}
 
 	return &model.AuthResponse{
 		User: &model.User{
-			ID:            fmt.Sprintf("%d", user.ID),
-			Username:      user.Username,
-			Email:         user.Email,
-			FullName:      user.FullName,
-			Address:       user.Address.String,
-			PhoneNumber:   user.PhoneNumber.String,
-			PaymentMethod: user.PaymentMethod.String,
+			ID:            fmt.Sprintf("%d", result.User.ID),
+			Username:      result.User.Username,
+			Email:         result.User.Email,
+			FullName:      result.User.FullName,
+			Address:       result.User.Address.String,
+			PhoneNumber:   result.User.PhoneNumber.String,
+			PaymentMethod: result.User.PaymentMethod.String,
 		},
-		Token:        accessToken,
-		RefreshToken: refreshToken,
+		Token:        result.AccessToken,
+		RefreshToken: result.RefreshToken,
 	}, nil
 }
 
@@ -477,9 +360,12 @@ func (r *mutationResolver) RefreshToken(ctx context.Context, token string) (*mod
 		return nil, fmt.Errorf("invalid refresh token: %w", err)
 	}
 
-	user, err := r.Resolver.Queries.GetUserByEmail(ctx, payload.Username)
+	user, err := r.Store.GetUserByEmail(ctx, payload.Username)
 	if err != nil {
-		return nil, fmt.Errorf("user not found: %w", err)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, fmt.Errorf("user not found")
+		}
+		return nil, fmt.Errorf("failed to find user: %w", err)
 	}
 
 	newAccessToken, _, err := r.TokenMaker.CreateToken(user.Username, "user", 24*time.Hour)
@@ -520,12 +406,15 @@ func (r *mutationResolver) AddToCart(ctx context.Context, productID string, quan
 	}
 
 	// Verify product exists
-	product, err := r.Resolver.Queries.GetProduct(ctx, int32(prodID))
+	product, err := r.Store.GetProduct(ctx, int32(prodID))
 	if err != nil {
-		return nil, fmt.Errorf("product not found: %w", err)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, fmt.Errorf("product not found")
+		}
+		return nil, fmt.Errorf("failed to get product: %w", err)
 	}
 
-	cartItem, err := r.Resolver.Queries.AddToCart(ctx, db.AddToCartParams{
+	cartItem, err := r.Store.AddToCart(ctx, db.AddToCartParams{
 		UserID:    int32(authCtx.UserID),
 		ProductID: int32(prodID),
 		Quantity:  int32(quantity),
@@ -575,7 +464,7 @@ func (r *mutationResolver) UpdateCartItemQuantity(ctx context.Context, productID
 
 	// If quantity is 0 or less, remove the item
 	if quantity <= 0 {
-		err = r.Resolver.Queries.RemoveFromCart(ctx, db.RemoveFromCartParams{
+		err = r.Store.RemoveFromCart(ctx, db.RemoveFromCartParams{
 			UserID:    int32(authCtx.UserID),
 			ProductID: int32(prodID),
 		})
@@ -585,7 +474,7 @@ func (r *mutationResolver) UpdateCartItemQuantity(ctx context.Context, productID
 		return nil, nil
 	}
 
-	cartItem, err := r.Resolver.Queries.UpdateCartItemQuantity(ctx, db.UpdateCartItemQuantityParams{
+	cartItem, err := r.Store.UpdateCartItemQuantity(ctx, db.UpdateCartItemQuantityParams{
 		UserID:    int32(authCtx.UserID),
 		ProductID: int32(prodID),
 		Quantity:  int32(quantity),
@@ -594,7 +483,7 @@ func (r *mutationResolver) UpdateCartItemQuantity(ctx context.Context, productID
 		return nil, fmt.Errorf("failed to update cart item: %w", err)
 	}
 
-	product, err := r.Resolver.Queries.GetProduct(ctx, int32(prodID))
+	product, err := r.Store.GetProduct(ctx, int32(prodID))
 	if err != nil {
 		return nil, fmt.Errorf("product not found: %w", err)
 	}
@@ -638,7 +527,7 @@ func (r *mutationResolver) RemoveFromCart(ctx context.Context, productID string)
 		return false, fmt.Errorf("invalid product ID: %w", err)
 	}
 
-	err = r.Resolver.Queries.RemoveFromCart(ctx, db.RemoveFromCartParams{
+	err = r.Store.RemoveFromCart(ctx, db.RemoveFromCartParams{
 		UserID:    int32(authCtx.UserID),
 		ProductID: int32(prodID),
 	})
@@ -656,7 +545,7 @@ func (r *mutationResolver) ClearCart(ctx context.Context) (bool, error) {
 		return false, fmt.Errorf("authentication required")
 	}
 
-	err = r.Resolver.Queries.ClearCart(ctx, int32(authCtx.UserID))
+	err = r.Store.ClearCart(ctx, int32(authCtx.UserID))
 	if err != nil {
 		return false, fmt.Errorf("failed to clear cart: %w", err)
 	}
@@ -671,8 +560,11 @@ func (r *queryResolver) GetUser(ctx context.Context, id string) (*model.User, er
 		return nil, fmt.Errorf("invalid user ID: %w", err)
 	}
 
-	user, err := r.Resolver.Queries.GetUser(ctx, int32(userID))
+	user, err := r.Store.GetUser(ctx, int32(userID))
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, fmt.Errorf("user not found")
+		}
 		return nil, fmt.Errorf("failed to get user: %w", err)
 	}
 
@@ -689,7 +581,7 @@ func (r *queryResolver) GetUser(ctx context.Context, id string) (*model.User, er
 
 // ListUsers is the resolver for the listUsers field.
 func (r *queryResolver) ListUsers(ctx context.Context) ([]*model.User, error) {
-	users, err := r.Resolver.Queries.GetUsers(ctx)
+	users, err := r.Store.GetUsers(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get users: %w", err)
 	}
@@ -712,7 +604,7 @@ func (r *queryResolver) ListUsers(ctx context.Context) ([]*model.User, error) {
 
 // GetCompanies is the resolver for the getCompanies field.
 func (r *queryResolver) GetCompanies(ctx context.Context) ([]*model.Company, error) {
-	companies, err := r.Resolver.Queries.GetCompanies(ctx)
+	companies, err := r.Store.GetCompanies(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get companies: %w", err)
 	}
@@ -735,8 +627,11 @@ func (r *queryResolver) GetCompany(ctx context.Context, id string) (*model.Compa
 		return nil, fmt.Errorf("invalid company ID: %w", err)
 	}
 
-	company, err := r.Resolver.Queries.GetCompany(ctx, int32(companyID))
+	company, err := r.Store.GetCompany(ctx, int32(companyID))
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, fmt.Errorf("company not found")
+		}
 		return nil, fmt.Errorf("failed to get company: %w", err)
 	}
 
@@ -748,7 +643,7 @@ func (r *queryResolver) GetCompany(ctx context.Context, id string) (*model.Compa
 
 // Categories is the resolver for the categories field.
 func (r *queryResolver) Categories(ctx context.Context) ([]*model.Category, error) {
-	categories, err := r.Resolver.Queries.GetCategories(ctx)
+	categories, err := r.Store.GetCategories(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get categories: %w", err)
 	}
@@ -795,7 +690,7 @@ func (r *queryResolver) GetProducts(ctx context.Context, category *string, sold 
 		searchParam = pgtype.Text{Valid: false}
 	}
 
-	products, err := r.Resolver.Queries.GetProducts(ctx, db.GetProductsParams{
+	products, err := r.Store.GetProducts(ctx, db.GetProductsParams{
 		Category:     categoryParam,
 		Sold:         soldParam,
 		IsNegotiable: isNegotiableParam,
@@ -837,8 +732,11 @@ func (r *queryResolver) GetProduct(ctx context.Context, id string) (*model.Produ
 		return nil, fmt.Errorf("invalid product ID: %w", err)
 	}
 
-	product, err := r.Resolver.Queries.GetProduct(ctx, int32(productID))
+	product, err := r.Store.GetProduct(ctx, int32(productID))
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, fmt.Errorf("product not found")
+		}
 		return nil, fmt.Errorf("failed to get product: %w", err)
 	}
 
@@ -867,17 +765,92 @@ func (r *queryResolver) GetProduct(ctx context.Context, id string) (*model.Produ
 
 // GetProductsAdvanced is the resolver for the getProductsAdvanced field.
 func (r *queryResolver) GetProductsAdvanced(ctx context.Context, search *string, minPrice *int, maxPrice *int, minStock *int, sold *bool, companyID *int, sortBy *string, limit *int, offset *int) ([]*model.Product, error) {
-	return []*model.Product{}, nil
+	products, err := r.ProductService.GetProductsAdvanced(ctx, services.GetProductsAdvancedParams{
+		Search:    search,
+		MinPrice:  minPrice,
+		MaxPrice:  maxPrice,
+		MinStock:  minStock,
+		Sold:      sold,
+		CompanyID: companyID,
+		SortBy:    sortBy,
+		Limit:     limit,
+		Offset:    offset,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get products: %w", err)
+	}
+
+	var result []*model.Product
+	for _, product := range products {
+		var responseCompanyID int
+		if product.CompanyID.Valid {
+			responseCompanyID = int(product.CompanyID.Int32)
+		}
+		result = append(result, &model.Product{
+			ID:              fmt.Sprintf("%d", product.ID),
+			Name:            product.Name,
+			Description:     product.Description,
+			Price:           int(product.Price),
+			OwnerID:         int(product.OwnerID),
+			CompanyID:       &responseCompanyID,
+			ImageLink:       product.ImageLink,
+			AvailableStocks: int(product.AvailableStocks),
+			IsNegotiable:    product.IsNegotiable,
+			Sold:            product.Sold,
+			Likes:           int(product.Likes),
+			Category:        product.Category,
+		})
+	}
+
+	return result, nil
 }
 
 // GetProductsByOwner is the resolver for the getProductsByOwner field.
 func (r *queryResolver) GetProductsByOwner(ctx context.Context, ownerID string) ([]*model.Product, error) {
-	return []*model.Product{}, nil
+	products, err := r.ProductService.GetProductsByOwner(ctx, ownerID)
+	if err != nil {
+		return nil, err
+	}
+
+	var result []*model.Product
+	for _, product := range products {
+		var responseCompanyID int
+		if product.CompanyID.Valid {
+			responseCompanyID = int(product.CompanyID.Int32)
+		}
+		result = append(result, &model.Product{
+			ID:              fmt.Sprintf("%d", product.ID),
+			Name:            product.Name,
+			Description:     product.Description,
+			Price:           int(product.Price),
+			OwnerID:         int(product.OwnerID),
+			CompanyID:       &responseCompanyID,
+			ImageLink:       product.ImageLink,
+			AvailableStocks: int(product.AvailableStocks),
+			IsNegotiable:    product.IsNegotiable,
+			Sold:            product.Sold,
+			Likes:           int(product.Likes),
+			Category:        product.Category,
+		})
+	}
+
+	return result, nil
 }
 
 // GetProductCount is the resolver for the getProductCount field.
 func (r *queryResolver) GetProductCount(ctx context.Context, search *string, minPrice *int, maxPrice *int, minStock *int, sold *bool, companyID *int) (int, error) {
-	return 0, nil
+	count, err := r.ProductService.GetProductCount(ctx, services.GetProductsAdvancedParams{
+		Search:    search,
+		MinPrice:  minPrice,
+		MaxPrice:  maxPrice,
+		MinStock:  minStock,
+		Sold:      sold,
+		CompanyID: companyID,
+	})
+	if err != nil {
+		return 0, fmt.Errorf("failed to get product count: %w", err)
+	}
+	return int(count), nil
 }
 
 // GetCart is the resolver for the getCart field.
@@ -887,7 +860,7 @@ func (r *queryResolver) GetCart(ctx context.Context) (*model.Cart, error) {
 		return nil, fmt.Errorf("authentication required")
 	}
 
-	cartItems, err := r.Resolver.Queries.GetCartItems(ctx, int32(authCtx.UserID))
+	cartItems, err := r.Store.GetCartItems(ctx, int32(authCtx.UserID))
 	if err != nil {
 		return nil, fmt.Errorf("failed to get cart items: %w", err)
 	}
@@ -913,7 +886,7 @@ func (r *queryResolver) GetCart(ctx context.Context) (*model.Cart, error) {
 		totalPrice += int(item.Price) * int(item.Quantity)
 	}
 
-	totalItems, err := r.Resolver.Queries.GetCartItemCount(ctx, int32(authCtx.UserID))
+	totalItems, err := r.Store.GetCartItemCount(ctx, int32(authCtx.UserID))
 	if err != nil {
 		return nil, fmt.Errorf("failed to get cart item count: %w", err)
 	}
@@ -932,7 +905,7 @@ func (r *queryResolver) GetCartItemCount(ctx context.Context) (int, error) {
 		return 0, fmt.Errorf("authentication required")
 	}
 
-	count, err := r.Resolver.Queries.GetCartItemCount(ctx, int32(authCtx.UserID))
+	count, err := r.Store.GetCartItemCount(ctx, int32(authCtx.UserID))
 	if err != nil {
 		return 0, fmt.Errorf("failed to get cart item count: %w", err)
 	}
