@@ -174,18 +174,15 @@ func (r *mutationResolver) UpdateCompany(ctx context.Context, id string, name st
 		return nil, fmt.Errorf("invalid company ID: %w", err)
 	}
 
-	company, err := r.Store.UpdateCompany(ctx, db.UpdateCompanyParams{
-		ID:   int32(companyID),
-		Name: name,
+	company, err := r.CompanyService.UpdateCompany(ctx, services.UpdateCompanyParams{
+		CompanyID: int32(companyID),
+		Name:      name,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to update company: %w", err)
+		return nil, err
 	}
 
-	return &model.Company{
-		ID:   fmt.Sprintf("%d", company.ID),
-		Name: company.Name,
-	}, nil
+	return company, nil
 }
 
 // CreateProduct is the resolver for the createProduct field.
@@ -604,41 +601,22 @@ func (r *queryResolver) ListUsers(ctx context.Context) ([]*model.User, error) {
 
 // GetCompanies is the resolver for the getCompanies field.
 func (r *queryResolver) GetCompanies(ctx context.Context) ([]*model.Company, error) {
-	companies, err := r.Store.GetCompanies(ctx)
+	companies, err := r.CompanyService.GetCompanies(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get companies: %w", err)
 	}
 
-	var result []*model.Company
-	for _, company := range companies {
-		result = append(result, &model.Company{
-			ID:   fmt.Sprintf("%d", company.ID),
-			Name: company.Name,
-		})
-	}
-
-	return result, nil
+	return companies, nil
 }
 
 // GetCompany is the resolver for the getCompany field.
 func (r *queryResolver) GetCompany(ctx context.Context, id string) (*model.Company, error) {
-	companyID, err := strconv.ParseInt(id, 10, 64)
+	company, err := r.CompanyService.GetCompanyByID(ctx, id)
 	if err != nil {
-		return nil, fmt.Errorf("invalid company ID: %w", err)
+		return nil, err
 	}
 
-	company, err := r.Store.GetCompany(ctx, int32(companyID))
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, fmt.Errorf("company not found")
-		}
-		return nil, fmt.Errorf("failed to get company: %w", err)
-	}
-
-	return &model.Company{
-		ID:   fmt.Sprintf("%d", company.ID),
-		Name: company.Name,
-	}, nil
+	return company, nil
 }
 
 // Categories is the resolver for the categories field.

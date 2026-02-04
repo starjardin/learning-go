@@ -1,8 +1,11 @@
-import type { ProductFormData } from "../types";
-import { ArrowLeft, Grid3X3, Heart, Home, Search, Plus, User, X, Image } from "lucide-react";
+import { ArrowLeft, Grid3X3, Search, Plus } from "lucide-react";
 import { useState, useEffect } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { useCreateProductMutation, useGetProductsQuery, useGetCategoriesQuery } from "../apollo/generated/graphql";
+import Button from "./Button";
+import { Footer } from "./Footer";
+import { ProductForm } from "./ProductForm";
+import type { FieldValues } from "react-hook-form";
 
 export const ProductsScreen = () => {
     const { data: categoriesData } = useGetCategoriesQuery();
@@ -37,19 +40,9 @@ export const ProductsScreen = () => {
     });
     const [showFab, setShowFab] = useState(false);
     const [showCreateModal, setShowCreateModal] = useState(false);
-    const [formData, setFormData] = useState<ProductFormData>({
-        name: '',
-        description: '',
-        price: 0,
-        availableStocks: 0,
-        isNegotiable: false,
-        imageLink: '',
-        companyId: null,
-        category: '',
-    });
+
     const [createError, setCreateError] = useState<string | null>(null);
     const [isCreating, setIsCreating] = useState(false);
-    const navigate = useNavigate();
     const [createProduct] = useCreateProductMutation();
     const categories = categoriesData?.categories || [];
 
@@ -86,7 +79,6 @@ export const ProductsScreen = () => {
 
     const handleFilterChange = (key: string, value: any) => {
         setFilters(prev => ({ ...prev, [key]: value }));
-        // Update URL when category changes
         if (key === 'category') {
             if (value) {
                 setSearchParams({ category: value });
@@ -111,47 +103,40 @@ export const ProductsScreen = () => {
         setSearchParams({});
     };
 
-    const handleCreateProduct = async () => {
-        setCreateError(null);
+    const handleSubmit = async (data: FieldValues) => {
         setIsCreating(true);
+        setCreateError(null);
+
+        const {
+            name, description, price, imageLink, availableStocks, isNegotiable, category
+        } = data
 
         try {
             await createProduct({
                 variables: {
                     input: {
-                        name: formData.name,
-                        description: formData.description,
-                        price: formData.price,
-                        image_link: formData.imageLink || 'https://via.placeholder.com/300x300',
-                        available_stocks: formData.availableStocks,
-                        is_negotiable: formData.isNegotiable,
-                        company_id: formData.companyId,
+                        name: name,
+                        description: description,
+                        price: price,
+                        image_link: imageLink || 'https://via.placeholder.com/300x300',
+                        available_stocks: availableStocks,
+                        is_negotiable: isNegotiable,
+                        company_id: 1, // Temporary static company_id for testing,
                         owner_id: 6, // Temporary static owner_id for testing
-                        category: formData.category,
+                        category: category,
                     }
                 },
                 refetchQueries: ['getProducts'],
                 awaitRefetchQueries: true,
             });
-            // Product created successfully
-            setShowCreateModal(false);
-            // Reset form
-            setFormData({
-                name: '',
-                description: '',
-                price: 0,
-                availableStocks: 0,
-                isNegotiable: false,
-                imageLink: '',
-                companyId: null,
-                category: '',
-            });
+
         } catch (err) {
             setCreateError(err instanceof Error ? err.message : 'Failed to create product');
         } finally {
             setIsCreating(false);
         }
     };
+
 
     return (
         <div className="flex flex-col h-screen bg-white">
@@ -334,195 +319,20 @@ export const ProductsScreen = () => {
                 )}
             </div>
 
-            <div className="flex justify-around bg-white border-t py-3 mt-auto">
-                <button onClick={() => navigate('/categories')} className="flex flex-col items-center py-2">
-                    <Home className="w-6 h-6 mb-1" />
-                    <span className="text-xs">Home</span>
-                </button>
-                <button className="flex flex-col items-center py-2">
-                    <Grid3X3 className="w-6 h-6 mb-1" />
-                    <span className="text-xs">Categories</span>
-                </button>
-                <button className="flex flex-col items-center py-2">
-                    <Heart className="w-6 h-6 mb-1" />
-                    <span className="text-xs">Wishlist</span>
-                </button>
-                <button className="flex flex-col items-center py-2">
-                    <User className="w-6 h-6 mb-1" />
-                    <span className="text-xs">Profile</span>
-                </button>
-            </div>
+            <Footer />
 
             {showFab && (
-                <button
+                <Button
                     onClick={() => setShowCreateModal(true)}
                     className="fixed bottom-20 right-4 bg-blue-600 text-white p-4 rounded-full shadow-lg hover:bg-blue-700 transition-all duration-300 transform hover:scale-105 z-50"
                     aria-label="Create new product"
                 >
                     <Plus className="w-6 h-6" />
-                </button>
+                </Button>
             )}
 
             {showCreateModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
-                        <div className="flex items-center justify-between p-6 border-b">
-                            <h2 className="text-lg font-bold">Create New Product</h2>
-                            <button
-                                onClick={() => setShowCreateModal(false)}
-                                className="text-gray-400 hover:text-gray-600 transition-colors"
-                            >
-                                <X className="w-6 h-6" />
-                            </button>
-                        </div>
-
-                        <div className="p-6">
-                            {createError && (
-                                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">
-                                    <div className="flex items-center">
-                                        <X className="w-4 h-4 mr-2" />
-                                        {createError}
-                                    </div>
-                                </div>
-                            )}
-
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Product Name *
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={formData.name}
-                                        onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                                        required
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        placeholder="Enter product name"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Description *
-                                    </label>
-                                    <textarea
-                                        value={formData.description}
-                                        onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                                        required
-                                        rows={4}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        placeholder="Describe your product"
-                                    />
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                                            Price ($) *
-                                        </label>
-                                        <input
-                                            type="number"
-                                            value={formData.price}
-                                            onChange={(e) => setFormData(prev => ({ ...prev, price: Number(e.target.value) }))}
-                                            required
-                                            min="0"
-                                            step="0.01"
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                            placeholder="0.00"
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                                            Available Stock *
-                                        </label>
-                                        <input
-                                            type="number"
-                                            value={formData.availableStocks}
-                                            onChange={(e) => setFormData(prev => ({ ...prev, availableStocks: Number(e.target.value) }))}
-                                            required
-                                            min="0"
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                            placeholder="0"
-                                        />
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Image URL
-                                    </label>
-                                    <div className="flex items-center space-x-2">
-                                        <Image className="w-5 h-5 text-gray-400" />
-                                        <input
-                                            type="url"
-                                            value={formData.imageLink}
-                                            onChange={(e) => setFormData(prev => ({ ...prev, imageLink: e.target.value }))}
-                                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                            placeholder="https://example.com/image.jpg"
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="flex items-center space-x-3">
-                                    <input
-                                        type="checkbox"
-                                        id="isNegotiable"
-                                        checked={formData.isNegotiable}
-                                        onChange={(e) => setFormData(prev => ({ ...prev, isNegotiable: e.target.checked }))}
-                                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                                    />
-                                    <label htmlFor="isNegotiable" className="text-sm font-medium text-gray-700">
-                                        Price is negotiable
-                                    </label>
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Category *
-                                    </label>
-                                    <select
-                                        value={formData.category}
-                                        onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
-                                        required
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    >
-                                        <option value="">Select a category</option>
-                                        {categories.map(cat => (
-                                            <option key={cat.id} value={cat.value}>{cat.name}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div className="flex justify-end space-x-3 pt-4">
-                                <button
-                                    onClick={() => setShowCreateModal(false)}
-                                    className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    onClick={handleCreateProduct}
-                                    disabled={isCreating}
-                                    className="px-6 py-2 bg-blue-600 text-white rounded-lg font-medium disabled:bg-blue-400 disabled:cursor-not-allowed hover:bg-blue-700 transition-colors flex items-center space-x-2"
-                                >
-                                    {isCreating ? (
-                                        <>
-                                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                                            Creating...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Plus className="w-5 h-5" />
-                                            Create Product
-                                        </>
-                                    )}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                <ProductForm onSubmit={handleSubmit} isLoading={isCreating} />
             )}
         </div>
     );

@@ -107,6 +107,7 @@ func main() {
 	store := db.NewStore(connPool)
 	userService := services.NewUserService(store, tokenMaker, config, log)
 	productService := services.NewProductService(store, log)
+	companyService := services.NewCompanyService(store, log)
 
 	// Create resolver
 	resolver := &graph.Resolver{
@@ -116,6 +117,7 @@ func main() {
 		Logger:         log,
 		UserService:    userService,
 		ProductService: productService,
+		CompanyService: companyService,
 	}
 
 	// Create GraphQL handler

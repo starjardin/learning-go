@@ -2,6 +2,7 @@ import { Grid3X3, Heart, Home, Search, ShoppingCart, User, Plus } from "lucide-r
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useGetCategoriesQuery, useGetProductsQuery } from "../apollo/generated/graphql";
+import { Footer } from "./Footer";
 
 const categoryIcons: Record<string, string> = {
     CLOTHING: '👕',
@@ -102,26 +103,6 @@ export const CategoriesScreen = () => {
             </div>
         </div>
 
-        <div className="flex justify-around bg-white border-t py-3 mt-auto">
-            <button className="flex flex-col items-center py-2">
-                <Home className="w-6 h-6 mb-1" />
-                <span className="text-xs">Home</span>
-            </button>
-            <Link
-                to='categories'
-                className="flex flex-col items-center py-2"
-            >
-                <Grid3X3 className="w-6 h-6 mb-1 text-black" />
-                <span className="text-xs text-black font-medium">Categories</span>
-            </Link>
-            <button className="flex flex-col items-center py-2">
-                <Heart className="w-6 h-6 mb-1" />
-                <span className="text-xs">Wishlist</span>
-            </button>
-            <button className="flex flex-col items-center py-2">
-                <User className="w-6 h-6 mb-1" />
-                <span className="text-xs">Profile</span>
-            </button>
-        </div>
+        <Footer />
     </div>
 }

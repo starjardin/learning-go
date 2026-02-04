@@ -20,4 +20,5 @@ type Resolver struct {
 	Logger         zerolog.Logger
 	UserService    *services.UserService
 	ProductService *services.ProductService
+	CompanyService *services.CompanyService
 }
