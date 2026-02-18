@@ -1,8 +1,9 @@
-import { Grid3X3, Heart, Home, Search, ShoppingCart, User, Plus } from "lucide-react";
+import { Search, ShoppingCart, Plus } from "lucide-react";
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useGetCategoriesQuery, useGetProductsQuery } from "../apollo/generated/graphql";
 import { Footer } from "./Footer";
+import Button from "./Button";
 
 const categoryIcons: Record<string, string> = {
     CLOTHING: '👕',
@@ -50,13 +51,13 @@ export const CategoriesScreen = () => {
                         </span>
                     )}
                 </Link>
-                <button
+                <Button
                     onClick={() => navigate('/create-product')}
                     className="bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
                 >
                     <Plus className="w-5 h-5" />
                     <span>Create</span>
-                </button>
+                </Button>
             </div>
 
             <div className="relative">

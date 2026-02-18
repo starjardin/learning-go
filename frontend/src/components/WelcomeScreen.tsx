@@ -2,6 +2,7 @@ import React from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { ShoppingBag, Grid3x3, Package } from 'lucide-react';
+import Button from './Button';
 
 export const WelcomeScreen: React.FC = () => {
     const { user } = useAuth();
@@ -39,29 +40,29 @@ export const WelcomeScreen: React.FC = () => {
 
                     {/* Action Buttons */}
                     <div className="space-y-4">
-                        <button
+                        <Button
                             onClick={handleBrowseProducts}
                             className="w-full bg-black text-white py-4 px-6 rounded-lg font-medium text-lg hover:bg-gray-800 transition-colors flex items-center justify-center space-x-3"
                         >
                             <ShoppingBag className="w-5 h-5" />
                             <span>Browse Products</span>
-                        </button>
+                        </Button>
 
-                        <button
+                        <Button
                             onClick={handleViewCategories}
                             className="w-full bg-gray-100 text-gray-900 py-4 px-6 rounded-lg font-medium text-lg hover:bg-gray-200 transition-colors flex items-center justify-center space-x-3"
                         >
                             <Grid3x3 className="w-5 h-5" />
                             <span>View Categories</span>
-                        </button>
+                        </Button>
 
-                        <button
+                        <Button
                             onClick={handleBrowseProducts}
                             className="w-full border-2 border-gray-300 text-gray-700 py-4 px-6 rounded-lg font-medium text-lg hover:bg-gray-50 transition-colors flex items-center justify-center space-x-3"
                         >
                             <Package className="w-5 h-5" />
                             <span>View All Items</span>
-                        </button>
+                        </Button>
                     </div>
 
                     {/* User Info */}

@@ -1,6 +1,7 @@
 import { ArrowLeft, Minus, Plus, ShoppingCart, Trash2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useGetCartQuery, useUpdateCartItemQuantityMutation, useRemoveFromCartMutation, useClearCartMutation } from "../apollo/generated/graphql";
+import Button from "./Button";
 
 export const CartScreen = () => {
     const { data, loading, error, refetch } = useGetCartQuery();
@@ -76,9 +77,9 @@ export const CartScreen = () => {
                 </Link>
                 <h1 className="text-lg font-medium">Cart ({cart?.total_items || 0})</h1>
                 {items.length > 0 && (
-                    <button onClick={handleClearCart} className="text-red-400 hover:text-red-300">
+                    <Button onClick={handleClearCart} className="text-red-400 hover:text-red-300">
                         <Trash2 className="w-5 h-5" />
-                    </button>
+                    </Button>
                 )}
                 {items.length === 0 && <div className="w-6" />}
             </div>
@@ -105,19 +106,19 @@ export const CartScreen = () => {
                                 <p className="text-lg font-bold text-black">${item.product?.price?.toFixed(2)}</p>
                             </div>
                             <div className="flex items-center">
-                                <button
+                                <Button
                                     onClick={() => handleUpdateQuantity(item.product_id, item.quantity - 1)}
                                     className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-100"
                                 >
                                     <Minus className="w-4 h-4" />
-                                </button>
+                                </Button>
                                 <span className="mx-3 font-medium">{item.quantity}</span>
-                                <button
+                                <Button
                                     onClick={() => handleUpdateQuantity(item.product_id, item.quantity + 1)}
                                     className="w-8 h-8 rounded-full bg-black text-white flex items-center justify-center hover:bg-gray-800"
                                 >
                                     <Plus className="w-4 h-4" />
-                                </button>
+                                </Button>
                             </div>
                         </div>
                     ))
@@ -130,9 +131,9 @@ export const CartScreen = () => {
                         <span className="text-lg font-medium">Total</span>
                         <span className="text-2xl font-bold">${cart?.total_price?.toFixed(2)}</span>
                     </div>
-                    <button className="w-full bg-black text-white py-4 rounded-lg font-medium text-lg hover:bg-gray-800">
+                    <Button className="w-full bg-black text-white py-4 rounded-lg font-medium text-lg hover:bg-gray-800">
                         Checkout
-                    </button>
+                    </Button>
                 </div>
             )}
         </div>

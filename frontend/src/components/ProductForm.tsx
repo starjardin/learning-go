@@ -18,7 +18,7 @@ export const ProductForm = ({ onSubmit, isLoading }: ProductFormProps) => {
     } = useForm();
 
     return (
-        <form onSubmit={handleSubmit((data) => onSubmit(data))} className='space-y-6'>
+        <form onSubmit={handleSubmit((data) => onSubmit(data))} className='space-y-6 max-w-6xl mx-auto'>
             <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                     Product Name *
@@ -115,6 +115,23 @@ export const ProductForm = ({ onSubmit, isLoading }: ProductFormProps) => {
                 </label>
             </div>
 
+            <div className='flex justify-between gap-4'>
+                <Button
+                type="button"
+                disabled={isLoading}
+                className="w-full bg-red-600 text-white py-3 rounded-lg font-medium disabled:bg-red-400 disabled:cursor-not-allowed hover:bg-red-700 transition-colors"
+            >
+                {isLoading ? (
+                    <span className="flex items-center justify-center">
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                        Creating Product...
+                    </span>
+                ) : (
+                    <span className="flex items-center justify-center">
+                        Cancel
+                    </span>
+                )}
+            </Button>
             <Button
                 type="submit"
                 disabled={isLoading}
@@ -127,11 +144,11 @@ export const ProductForm = ({ onSubmit, isLoading }: ProductFormProps) => {
                     </span>
                 ) : (
                     <span className="flex items-center justify-center">
-                        <Plus className="w-5 h-5 mr-2" />
-                        Create Product
+                        Create
                     </span>
                 )}
             </Button>
+            </div>
         </form>
     )
 }

@@ -2,6 +2,7 @@ import { ArrowLeft, Eye, EyeOff, User, Mail } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
+import Button from "./Button";
 
 export const RegisterScreen = () => {
     const navigate = useNavigate();
@@ -92,12 +93,12 @@ export const RegisterScreen = () => {
                         We sent a verification link to <strong>{registerForm.email}</strong>.
                         Click the link in the email to verify your account.
                     </p>
-                    <button
+                    <Button
                         onClick={handleGoToLogin}
                         className="w-full py-3 bg-black text-white rounded-lg font-medium hover:bg-gray-800 transition-colors"
                     >
                         Go to Login
-                    </button>
+                    </Button>
                 </div>
             </div>
         );
@@ -234,13 +235,13 @@ export const RegisterScreen = () => {
                                 minLength={6}
                                 disabled={isLoading}
                             />
-                            <button
+                            <Button
                                 type="button"
                                 onClick={() => setShowPassword(!showPassword)}
                                 className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                             >
                                 {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                            </button>
+                            </Button>
                         </div>
                         <p className="text-xs text-gray-500 mt-1">Password must be at least 6 characters</p>
                     </div>
@@ -260,13 +261,13 @@ export const RegisterScreen = () => {
                                 required
                                 disabled={isLoading}
                             />
-                            <button
+                            <Button
                                 type="button"
                                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                                 className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                             >
                                 {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                            </button>
+                            </Button>
                         </div>
                         {registerForm.password && registerForm.confirmPassword && registerForm.password !== registerForm.confirmPassword && (
                             <p className="text-red-500 text-xs mt-1">Passwords do not match</p>
@@ -282,13 +283,13 @@ export const RegisterScreen = () => {
                         />
                         <label htmlFor="terms" className="text-sm text-gray-600 leading-relaxed">
                             I agree to the{' '}
-                            <button type="button" className="text-black cursor-pointer font-medium hover:underline">
+                            <Button type="button" className="text-black cursor-pointer font-medium hover:underline">
                                 Terms of Service
-                            </button>{' '}
+                            </Button>{' '}
                             and{' '}
-                            <button type="button" className="text-black cursor-pointer font-medium hover:underline">
+                            <Button type="button" className="text-black cursor-pointer font-medium hover:underline">
                                 Privacy Policy
-                            </button>
+                            </Button>
                         </label>
                     </div>
 
@@ -298,7 +299,7 @@ export const RegisterScreen = () => {
                         </div>
                     )}
 
-                    <button
+                    <Button
                         type="submit"
                         disabled={isLoading || !isFormValid()}
                         className="w-full bg-black cursor-pointer text-white py-4 rounded-lg font-medium text-lg hover:bg-gray-800 transition-colors mt-6 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center"
@@ -311,7 +312,7 @@ export const RegisterScreen = () => {
                         ) : (
                             'Create Account'
                         )}
-                    </button>
+                    </Button>
                 </form>
             </div>
 

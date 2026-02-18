@@ -1,7 +1,8 @@
-import { ArrowLeft, Heart, Star, ShoppingCart, Check, AlertCircle } from "lucide-react";
+import { ArrowLeft, Heart, Star, ShoppingCart, Check, AlertCircle, X, Download, ZoomIn } from "lucide-react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { useGetProductQuery, useAddToCartMutation } from "../apollo/generated/graphql";
 import { useState } from "react";
+import Button from "./Button";
 
 export const ProductDetailScreen = () => {
     const { id } = useParams<{ id: string }>();
@@ -10,6 +11,7 @@ export const ProductDetailScreen = () => {
     const [isAdding, setIsAdding] = useState(false);
     const [addedToCart, setAddedToCart] = useState(false);
     const [authError, setAuthError] = useState(false);
+    const [imageExpanded, setImageExpanded] = useState(false);
 
     const { data, loading, error } = useGetProductQuery({
         variables: { id: id as string },
@@ -20,6 +22,25 @@ export const ProductDetailScreen = () => {
 
     const product = data?.getProduct;
     const isAuthenticated = !!localStorage.getItem('token');
+
+    const imageUrl = product?.image_link || 'https://picsum.photos/500/500';
+
+    const handleDownloadImage = async () => {
+        try {
+            const response = await fetch(imageUrl, { mode: 'cors' });
+            const blob = await response.blob();
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `${product?.name || 'product'}.jpg`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        } catch {
+            window.open(imageUrl, '_blank');
+        }
+    };
 
     const handleAddToCart = async () => {
         if (!id || !product || product.available_stocks === 0) return;
@@ -55,9 +76,9 @@ export const ProductDetailScreen = () => {
                         <ArrowLeft className="w-6 h-6" />
                     </Link>
                     <h1 className="text-lg font-bold">Product Details</h1>
-                    <button>
+                    <Button>
                         <Heart className="w-6 h-6" />
-                    </button>
+                    </Button>
                 </div>
                 <div className="flex-1 p-4">
                     <div className="w-full h-64 bg-gray-200 rounded-lg mb-4 animate-pulse"></div>
@@ -76,9 +97,9 @@ export const ProductDetailScreen = () => {
                         <ArrowLeft className="w-6 h-6" />
                     </Link>
                     <h1 className="text-lg font-bold">Product Details</h1>
-                    <button>
+                    <Button>
                         <Heart className="w-6 h-6" />
-                    </button>
+                    </Button>
                 </div>
                 <div className="flex-1 flex items-center justify-center">
                     <p className="text-red-500">{error?.message || "Product not found"}</p>
@@ -87,24 +108,69 @@ export const ProductDetailScreen = () => {
         );
     }
 
-    return <div className="flex flex-col h-screen bg-white">
+    return <div className="flex flex-col h-screen bg-white max-w-7xl mx-auto">
+        {/* Full-screen image modal */}
+        {imageExpanded && (
+            <div
+                className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center"
+                onClick={() => setImageExpanded(false)}
+            >
+                <div className="absolute top-4 right-4 flex gap-2">
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            handleDownloadImage();
+                        }}
+                        className="p-2 bg-white/20 hover:bg-white/30 rounded-full text-white transition-colors"
+                        title="Download image"
+                    >
+                        <Download className="w-6 h-6" />
+                    </button>
+                    <button
+                        onClick={() => setImageExpanded(false)}
+                        className="p-2 bg-white/20 hover:bg-white/30 rounded-full text-white transition-colors"
+                        title="Close"
+                    >
+                        <X className="w-6 h-6" />
+                    </button>
+                </div>
+                <img
+                    src={imageUrl}
+                    alt={product.name}
+                    className="max-w-full max-h-full object-contain p-4"
+                    onClick={(e) => e.stopPropagation()}
+                    onError={(e) => {
+                        e.currentTarget.src = 'https://picsum.photos/500/500';
+                    }}
+                />
+            </div>
+        )}
+
         <div className="bg-white p-4 border-b flex items-center justify-between">
             <Link to='/products'>
                 <ArrowLeft className="w-6 h-6" />
             </Link>
             <h1 className="text-lg font-bold">Product Details</h1>
-            <button>
+            <Button>
                 <Heart className="w-6 h-6" />
-            </button>
+            </Button>
         </div>
 
         <div className="flex-1 overflow-y-auto">
             <div className="p-4">
-                <img
-                    src={product.image_link}
-                    alt={product.name}
-                    className="w-full h-64 bg-gray-200 rounded-lg mb-4 object-cover"
-                />
+                <div className="relative group cursor-pointer" onClick={() => setImageExpanded(true)}>
+                    <img
+                        src={imageUrl}
+                        alt={product.name}
+                        className="w-full h-64 bg-gray-200 rounded-lg mb-4 object-cover"
+                        onError={(e) => {
+                            e.currentTarget.src = 'https://picsum.photos/500/500';
+                        }}
+                    />
+                    <div className="absolute inset-0 mb-4 bg-black/0 group-hover:bg-black/20 rounded-lg transition-colors flex items-center justify-center">
+                        <ZoomIn className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </div>
+                </div>
 
                 <div className="flex items-center gap-2 mb-2">
                     <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">{product.category}</span>
@@ -166,34 +232,34 @@ export const ProductDetailScreen = () => {
             <div className="flex items-center gap-3 mb-3">
                 <span className="text-sm text-gray-600">Quantity:</span>
                 <div className="flex items-center border border-gray-300 rounded-lg">
-                    <button
+                    <Button
                         onClick={() => setQuantity(q => Math.max(1, q - 1))}
                         className="px-3 py-2 text-lg font-medium hover:bg-gray-100"
                         disabled={quantity <= 1}
                     >
                         -
-                    </button>
+                    </Button>
                     <span className="px-4 py-2 font-medium">{quantity}</span>
-                    <button
+                    <Button
                         onClick={() => setQuantity(q => Math.min(product?.available_stocks || 10, q + 1))}
                         className="px-3 py-2 text-lg font-medium hover:bg-gray-100"
                         disabled={quantity >= (product?.available_stocks || 10)}
                     >
                         +
-                    </button>
+                    </Button>
                 </div>
             </div>
             <div className="flex gap-3">
-                <button className="flex-1 bg-gray-100 text-black py-4 rounded-lg font-medium flex items-center justify-center gap-2">
+                <Button className="flex-1 bg-gray-100 text-black py-4 rounded-lg font-medium flex items-center justify-center gap-2">
                     <Heart className="w-5 h-5" />
                     Wishlist
-                </button>
-                <button
+                </Button>
+                <Button
                     onClick={handleAddToCart}
                     disabled={isAdding || product?.available_stocks === 0}
                     className={`flex-1 py-4 rounded-lg font-medium text-center flex items-center justify-center gap-2 transition-colors ${addedToCart
-                            ? 'bg-green-600 text-white'
-                            : 'bg-black text-white hover:bg-gray-800'
+                        ? 'bg-green-600 text-white'
+                        : 'bg-black text-white hover:bg-gray-800'
                         } disabled:bg-gray-400 disabled:cursor-not-allowed`}
                 >
                     {isAdding ? (
@@ -212,27 +278,27 @@ export const ProductDetailScreen = () => {
                             Add to Cart
                         </>
                     )}
-                </button>
+                </Button>
             </div>
             {authError && (
                 <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2">
                     <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
                     <span className="text-red-700 text-sm">Please sign in to add items to cart</span>
-                    <button
+                    <Button
                         onClick={() => navigate('/signin')}
                         className="ml-auto text-sm font-medium text-red-700 underline hover:text-red-800"
                     >
                         Sign In
-                    </button>
+                    </Button>
                 </div>
             )}
             {addedToCart && (
-                <button
+                <Button
                     onClick={() => navigate('/cart')}
                     className="w-full mt-3 py-3 border-2 border-black text-black rounded-lg font-medium hover:bg-gray-50"
                 >
                     View Cart
-                </button>
+                </Button>
             )}
         </div>
     </div>

@@ -80,13 +80,13 @@ export const LoginScreen = () => {
                             required
                             disabled={isLoading}
                         />
-                        <button
+                        <Button
                             type="button"
                             onClick={() => setShowPassword(!showPassword)}
                             className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                         >
                             {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                        </button>
+                        </Button>
                     </div>
                 </div>
 
@@ -103,7 +103,7 @@ export const LoginScreen = () => {
                     </Button>
                 </div>
 
-                <button
+                <Button
                     type="submit"
                     disabled={isLoading}
                     className="w-full bg-black cursor-pointer text-white py-4 rounded-lg font-medium text-lg hover:bg-gray-800 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center"
@@ -116,7 +116,7 @@ export const LoginScreen = () => {
                     ) : (
                         'Sign In'
                     )}
-                </button>
+                </Button>
 
                 {/* Error Display */}
                 {error && (

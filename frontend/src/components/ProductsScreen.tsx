@@ -1,11 +1,10 @@
 import { ArrowLeft, Grid3X3, Search, Plus } from "lucide-react";
 import { useState, useEffect } from "react";
-import { Link, useSearchParams } from "react-router-dom";
-import { useCreateProductMutation, useGetProductsQuery, useGetCategoriesQuery } from "../apollo/generated/graphql";
-import Button from "./Button";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { useGetProductsQuery, useGetCategoriesQuery } from "../apollo/generated/graphql";
 import { Footer } from "./Footer";
-import { ProductForm } from "./ProductForm";
-import type { FieldValues } from "react-hook-form";
+import Button from "./Button";
+
 
 export const ProductsScreen = () => {
     const { data: categoriesData } = useGetCategoriesQuery();
@@ -38,23 +37,10 @@ export const ProductsScreen = () => {
         },
         fetchPolicy: 'cache-and-network',
     });
-    const [showFab, setShowFab] = useState(false);
-    const [showCreateModal, setShowCreateModal] = useState(false);
 
-    const [createError, setCreateError] = useState<string | null>(null);
-    const [isCreating, setIsCreating] = useState(false);
-    const [createProduct] = useCreateProductMutation();
+    const navigate = useNavigate();
+
     const categories = categoriesData?.categories || [];
-
-    useEffect(() => {
-        const handleScroll = () => {
-            const scrollY = window.scrollY;
-            setShowFab(scrollY > 200); // Show FAB after scrolling 200px
-        };
-
-        window.addEventListener('scroll', handleScroll);
-        return () => window.removeEventListener('scroll', handleScroll);
-    }, []);
 
     if (loading) {
         return <div className="grid grid-cols-2 gap-4">
@@ -103,41 +89,6 @@ export const ProductsScreen = () => {
         setSearchParams({});
     };
 
-    const handleSubmit = async (data: FieldValues) => {
-        setIsCreating(true);
-        setCreateError(null);
-
-        const {
-            name, description, price, imageLink, availableStocks, isNegotiable, category
-        } = data
-
-        try {
-            await createProduct({
-                variables: {
-                    input: {
-                        name: name,
-                        description: description,
-                        price: price,
-                        image_link: imageLink || 'https://via.placeholder.com/300x300',
-                        available_stocks: availableStocks,
-                        is_negotiable: isNegotiable,
-                        company_id: 1, // Temporary static company_id for testing,
-                        owner_id: 6, // Temporary static owner_id for testing
-                        category: category,
-                    }
-                },
-                refetchQueries: ['getProducts'],
-                awaitRefetchQueries: true,
-            });
-
-        } catch (err) {
-            setCreateError(err instanceof Error ? err.message : 'Failed to create product');
-        } finally {
-            setIsCreating(false);
-        }
-    };
-
-
     return (
         <div className="flex flex-col h-screen bg-white">
             <div className="bg-white p-4 border-b flex items-center">
@@ -145,19 +96,19 @@ export const ProductsScreen = () => {
                     <ArrowLeft className="w-6 h-6" />
                 </Link>
                 <h1 className="text-lg font-bold">All Products</h1>
-                <button
-                    onClick={() => setShowCreateModal(true)}
+                <Button
+                    onClick={() => navigate('/create-product')}
                     className="ml-auto bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
                 >
                     <Plus className="w-5 h-5" />
                     <span className="text-sm font-medium">Create</span>
-                </button>
+                </Button>
             </div>
 
             <div className="p-4 border-b">
                 <form onSubmit={handleSearch} className="flex flex-wrap items-center gap-3">
-                    <div className="flex-1 min-w-[200px] relative">
-                        <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                    <div className="min-w-[200px] flex-1 relative">
+                        <Search className="w-3 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                         <input
                             type="text"
                             placeholder="Search products..."
@@ -170,7 +121,7 @@ export const ProductsScreen = () => {
                     <select
                         value={filters.category}
                         onChange={(e) => handleFilterChange('category', e.target.value)}
-                        className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
                         <option value="">All Categories</option>
                         {categories.map(cat => (
@@ -178,7 +129,7 @@ export const ProductsScreen = () => {
                         ))}
                     </select>
 
-                    <div className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg bg-white">
+                    <div className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg bg-white">
                         <span className="text-sm text-gray-600">Sold:</span>
                         <label className="flex items-center gap-1 cursor-pointer">
                             <input
@@ -212,7 +163,7 @@ export const ProductsScreen = () => {
                         </label>
                     </div>
 
-                    <div className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg bg-white">
+                    <div className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg bg-white">
                         <span className="text-sm text-gray-600">Negotiable:</span>
                         <label className="flex items-center gap-1 cursor-pointer">
                             <input
@@ -246,20 +197,22 @@ export const ProductsScreen = () => {
                         </label>
                     </div>
 
-                    <button
+                    <div className="flex justify-end flex-1">
+                        <Button
                         type="submit"
                         className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
                     >
                         Search
-                    </button>
+                    </Button>
 
-                    <button
+                    <Button
                         type="button"
                         onClick={clearFilters}
                         className="text-gray-600 hover:text-gray-900 text-sm px-3 py-2"
                     >
                         Clear
-                    </button>
+                    </Button>
+                    </div>
                 </form>
             </div>
 
@@ -271,22 +224,22 @@ export const ProductsScreen = () => {
                 )}
 
                 {(productsData?.getProducts ?? [])?.length === 0 ? (
-                    <div className="text-center py-12">
+                    <div className="text-center py-12 max-w-2xl m-auto h-full flex flex-col justify-center">
                         <div className="text-gray-400 mb-4">
                             <Grid3X3 className="w-12 h-12 mx-auto" />
                         </div>
                         <h3 className="text-lg font-medium text-gray-900 mb-2">No products found</h3>
                         <p className="text-gray-500 mb-4">Try adjusting your search or filters</p>
-                        <button
-                            onClick={() => setShowCreateModal(true)}
-                            className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                        <Button
+                            onClick={() => navigate('/create-product')}
+                            className="flex items-center justify-center w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"
                         >
                             <Plus className="w-5 h-5 mr-2" />
                             Create Your First Product
-                        </button>
+                        </Button>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                         {(productsData?.getProducts ?? []).map((product: any) => (
                             <Link
                                 key={product.id}
@@ -294,11 +247,11 @@ export const ProductsScreen = () => {
                                 className="bg-white border rounded-lg p-3 text-left hover:shadow-md transition-shadow"
                             >
                                 <img
-                                    src={product.image_link || 'https://picsum.photos/200/300'}
+                                    src={product.image_link || 'https://picsum.photos/500/500'}
                                     alt={product.name}
                                     className="w-full h-32 bg-gray-200 rounded-lg mb-2 object-cover"
                                     onError={(e) => {
-                                        e.currentTarget.src = 'https://picsum.photos/200/300';
+                                        e.currentTarget.src = 'https://picsum.photos/500/500';
                                     }}
                                 />
                                 <h3 className="font-medium text-sm mb-1 line-clamp-1">{product.name}</h3>
@@ -318,22 +271,7 @@ export const ProductsScreen = () => {
                     </div>
                 )}
             </div>
-
             <Footer />
-
-            {showFab && (
-                <Button
-                    onClick={() => setShowCreateModal(true)}
-                    className="fixed bottom-20 right-4 bg-blue-600 text-white p-4 rounded-full shadow-lg hover:bg-blue-700 transition-all duration-300 transform hover:scale-105 z-50"
-                    aria-label="Create new product"
-                >
-                    <Plus className="w-6 h-6" />
-                </Button>
-            )}
-
-            {showCreateModal && (
-                <ProductForm onSubmit={handleSubmit} isLoading={isCreating} />
-            )}
         </div>
     );
 };
