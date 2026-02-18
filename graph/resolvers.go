@@ -390,6 +390,24 @@ func (r *mutationResolver) RefreshToken(ctx context.Context, token string) (*mod
 	}, nil
 }
 
+// ForgotPassword is the resolver for the forgotPassword field.
+func (r *mutationResolver) ForgotPassword(ctx context.Context, email string) (bool, error) {
+	err := r.UserService.ForgotPassword(ctx, email)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+// ResetPassword is the resolver for the resetPassword field.
+func (r *mutationResolver) ResetPassword(ctx context.Context, token string, newPassword string) (bool, error) {
+	err := r.UserService.ResetPassword(ctx, token, newPassword)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
 // AddToCart is the resolver for the addToCart field.
 func (r *mutationResolver) AddToCart(ctx context.Context, productID string, quantity int) (*model.CartItem, error) {
 	authCtx, err := GetAuthFromContext(ctx)

@@ -9,18 +9,21 @@ import { ApolloProvider } from "@apollo/client/react";
 
 import {
   createBrowserRouter,
-  redirect,
   RouterProvider,
 } from "react-router-dom";
 import { ProductDetailScreen } from './components/ProductDetailScreen.tsx';
 import { ErrorBoundary } from './components/ErrorBoundary.tsx';
 import { LoginScreen } from './components/SignIn.tsx';
 import { RegisterScreen } from './components/Registers.tsx';
+import { ForgotPasswordScreen } from './components/ForgotPasswordScreen.tsx';
+import { ResetPasswordScreen } from './components/ResetPasswordScreen.tsx';
+import { VerifyEmailScreen } from './components/VerifyEmailScreen.tsx';
 import { ProductsScreen } from './components/ProductsScreen.tsx';
 import { CategoriesScreen } from './components/CategoriesScreen.tsx';
 import { AuthProvider } from './contexts/AuthContext.tsx';
 import { CreateProductScreen } from './components/CreateProductScreen.tsx';
 import { CartScreen } from './components/CartScreen.tsx';
+import { ProtectedRoute } from './components/ProtectedRoute.tsx';
 
 // Use environment variable for API URL, fallback to relative path for production
 const API_URL = import.meta.env.VITE_API_URL || '/query';
@@ -41,24 +44,8 @@ const client = new ApolloClient({
   cache: new InMemoryCache(),
 });
 
-function isAuthenticated() {
-  return !!localStorage.getItem('token');
-}
-
-function requireAuthLoader() {
-  if (!isAuthenticated()) {
-    throw redirect("/signin");
-  }
-  return null;
-}
-
 const router = createBrowserRouter([
-  {
-    path: "/products/:id",
-    element: <ProductDetailScreen />,
-    loader: requireAuthLoader,
-    errorElement: <ErrorBoundary />
-  },
+  // Public routes (accessible without sign-in)
   {
     path: "/signin",
     element: <LoginScreen />,
@@ -70,34 +57,51 @@ const router = createBrowserRouter([
     errorElement: <ErrorBoundary />
   },
   {
-    path: "/create-product",
-    element: <CreateProductScreen />,
-    loader: requireAuthLoader,
+    path: "/forgot-password",
+    element: <ForgotPasswordScreen />,
     errorElement: <ErrorBoundary />
   },
   {
-    path: "/products",
-    element: <ProductsScreen />,
-    loader: requireAuthLoader,
+    path: "/reset-password",
+    element: <ResetPasswordScreen />,
     errorElement: <ErrorBoundary />
   },
   {
-    path: "/categories",
-    element: <CategoriesScreen />,
-    loader: requireAuthLoader,
+    path: "/verify-email",
+    element: <VerifyEmailScreen />,
     errorElement: <ErrorBoundary />
   },
+  // Protected routes (require sign-in)
   {
-    path: "/cart",
-    element: <CartScreen />,
-    loader: requireAuthLoader,
-    errorElement: <ErrorBoundary />
+    element: <ProtectedRoute />,
+    errorElement: <ErrorBoundary />,
+    children: [
+      {
+        path: "/products/:id",
+        element: <ProductDetailScreen />,
+      },
+      {
+        path: "/create-product",
+        element: <CreateProductScreen />,
+      },
+      {
+        path: "/products",
+        element: <ProductsScreen />,
+      },
+      {
+        path: "/categories",
+        element: <CategoriesScreen />,
+      },
+      {
+        path: "/cart",
+        element: <CartScreen />,
+      },
+      {
+        path: "*",
+        element: <App />,
+      },
+    ],
   },
-  {
-    path: "*",
-    element: <App />,
-    loader: requireAuthLoader,
-  }
 ]);
 
 createRoot(document.getElementById('root')!).render(

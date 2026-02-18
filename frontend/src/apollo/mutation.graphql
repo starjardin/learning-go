@@ -97,3 +97,11 @@ verifyEmail(token: $token) {
     refreshToken
 }
 }
+
+mutation ForgotPassword($email: String!) {
+  forgotPassword(email: $email)
+}
+
+mutation ResetPassword($token: String!, $newPassword: String!) {
+  resetPassword(token: $token, newPassword: $newPassword)
+}

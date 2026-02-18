@@ -125,6 +125,15 @@ type Mutation {
     token: String!
   ): AuthResponse!
 
+  forgotPassword(
+    email: String!
+  ): Boolean!
+
+  resetPassword(
+    token: String!
+    newPassword: String!
+  ): Boolean!
+
   addToCart(productId: ID!, quantity: Int!): CartItem!
   updateCartItemQuantity(productId: ID!, quantity: Int!): CartItem!
   removeFromCart(productId: ID!): Boolean!

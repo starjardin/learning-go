@@ -98,9 +98,9 @@ export const LoginScreen = () => {
                         />
                         <span className="ml-2 text-sm text-gray-600">Remember me</span>
                     </label>
-                    <Button type="button" className="text-sm text-black font-medium hover:underline">
+                    <Link to="/forgot-password" className="text-sm text-black font-medium hover:underline">
                         Forgot Password?
-                    </Button>
+                    </Link>
                 </div>
 
                 <Button

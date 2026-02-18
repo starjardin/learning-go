@@ -15,11 +15,13 @@ type Querier interface {
 	ClearCart(ctx context.Context, userID int32) error
 	CreateCompany(ctx context.Context, name string) (Company, error)
 	CreateEmailVerification(ctx context.Context, arg CreateEmailVerificationParams) (EmailVerification, error)
+	CreatePasswordReset(ctx context.Context, arg CreatePasswordResetParams) (PasswordReset, error)
 	CreateProduct(ctx context.Context, arg CreateProductParams) (Product, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	CreateUserSecurity(ctx context.Context, arg CreateUserSecurityParams) (UserSecurity, error)
 	DeleteCompany(ctx context.Context, id int32) error
 	DeleteExpiredEmailVerifications(ctx context.Context) error
+	DeleteExpiredPasswordResets(ctx context.Context) error
 	DeleteProduct(ctx context.Context, id int32) (Product, error)
 	DeleteUser(ctx context.Context, id int32) error
 	GetCartItem(ctx context.Context, arg GetCartItemParams) (CartItem, error)
@@ -33,6 +35,7 @@ type Querier interface {
 	GetCompanyByName(ctx context.Context, name string) (Company, error)
 	GetCompanyByNameOrId(ctx context.Context, name string) (Company, error)
 	GetEmailVerificationByToken(ctx context.Context, token string) (EmailVerification, error)
+	GetPasswordResetByToken(ctx context.Context, token string) (PasswordReset, error)
 	GetProduct(ctx context.Context, id int32) (Product, error)
 	GetProductCount(ctx context.Context, arg GetProductCountParams) (int64, error)
 	GetProducts(ctx context.Context, arg GetProductsParams) ([]Product, error)
@@ -42,7 +45,9 @@ type Querier interface {
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByUsername(ctx context.Context, username string) (User, error)
 	GetUsers(ctx context.Context) ([]User, error)
+	InvalidateUserPasswordResets(ctx context.Context, userID int32) error
 	MarkEmailVerified(ctx context.Context, token string) (EmailVerification, error)
+	MarkPasswordResetUsed(ctx context.Context, token string) (PasswordReset, error)
 	RemoveFromCart(ctx context.Context, arg RemoveFromCartParams) error
 	SearchProducts(ctx context.Context, dollar_1 pgtype.Text) ([]Product, error)
 	UpdateCartItemQuantity(ctx context.Context, arg UpdateCartItemQuantityParams) (CartItem, error)

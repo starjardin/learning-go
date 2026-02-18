@@ -19,6 +19,7 @@ type Config struct {
 	EmailSenderAddress   string        `mapstructure:"EMAIL_SENDER_ADDRESS"`
 	EmailSenderPassword  string        `mapstructure:"EMAIL_SENDER_PASSWORD"`
 	BaseURL              string        `mapstructure:"BASE_URL"`
+	FrontendURL          string        `mapstructure:"FRONTEND_URL"`
 	RateLimitRPS         float64       `mapstructure:"RATE_LIMIT_RPS"`
 	RateLimitBurst       int           `mapstructure:"RATE_LIMIT_BURST"`
 }
@@ -44,6 +45,9 @@ func LoadConfig(path string) (config Config, err error) {
 	viper.BindEnv("BASE_URL")
 	viper.BindEnv("RATE_LIMIT_RPS")
 	viper.BindEnv("RATE_LIMIT_BURST")
+	viper.BindEnv("EMAIL_SENDER_ADDRESS")
+	viper.BindEnv("EMAIL_SENDER_PASSWORD")
+	viper.BindEnv("FRONTEND_URL")
 
 	// Set defaults
 	viper.SetDefault("ENVIRONMENT", "development")
@@ -52,6 +56,7 @@ func LoadConfig(path string) (config Config, err error) {
 	viper.SetDefault("ACCESS_TOKEN_DURATION", "15m")
 	viper.SetDefault("REFRESH_TOKEN_DURATION", "24h")
 	viper.SetDefault("BASE_URL", "http://localhost:8080")
+	viper.SetDefault("FRONTEND_URL", "http://localhost:5173")
 	viper.SetDefault("RATE_LIMIT_RPS", 10.0)
 	viper.SetDefault("RATE_LIMIT_BURST", 20)
 
